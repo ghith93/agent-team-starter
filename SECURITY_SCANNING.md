@@ -34,10 +34,11 @@ The workflow uploads `offline-test-reports` and `python-security-reports` artifa
 
 ## Verified restoration candidate run
 
-For the restored candidate at commit `d10db245b89bdacfd522355949372a42ea8f3bc1` proposed in PR #4, both current GitHub Actions workflows completed successfully:
+For the candidate at commit `f661e539e125f0133356112df3a68ad1904e0068` proposed in PR #4, both current GitHub Actions workflows completed successfully:
 
-- [Tests and security scans run](https://github.com/ghith93/agent-team-starter/actions/runs/39982006908): offline regression/evaluator job, Gitleaks secret scan, and Python SAST/secrets/dependency-audit job all passed.
-- [Offline regression checks run](https://github.com/ghith93/agent-team-starter/actions/runs/39982006935): passed.
+- [Tests and security scans run](https://github.com/ghith93/agent-team-starter/actions/runs/39982891091): offline regression/evaluator job, Gitleaks secret scan, and Python SAST/secrets/dependency-audit job all passed.
+- [Offline regression checks run](https://github.com/ghith93/agent-team-starter/actions/runs/39982891206): passed.
+- The tests include regressions proving that error responses echoing the exact Gemini or OpenRouter API key are redacted. The Gitleaks configuration allowlists only two synthetic test-fixture strings, scoped to `tests/test_router.py`; it does not disable scanning for real credentials.
 - An earlier successful security run's reports remain available from [run 39980376092](https://github.com/ghith93/agent-team-starter/actions/runs/39980376092). Its reported results included zero Bandit findings, zero Semgrep findings, zero detect-secrets files with findings, and no known vulnerabilities reported for the five installed runtime dependencies checked by pip-audit.
 
 These are results for the specific tested candidate commit, not a permanent guarantee for later commits. The project is still under review in a draft PR; this document does not authorize a merge or production deployment.
