@@ -227,5 +227,29 @@ class RouterTests(unittest.TestCase):
         self.assertEqual(payload["contents"][0]["parts"][0]["text"], "untrusted")
 
 
+    def test_provider_requests_do_not_follow_redirects(self):
+        class OpenRouterResponse:
+            status_code = 200
+            def json(self):
+                return {"choices": [{"message": {"content": "ok"}}]}
+
+        class GeminiResponse:
+            status_code = 200
+            def json(self):
+                return {"candidates": [{"content": {"parts": [{"text": "ok"}]}}]}
+
+        with patch("agent_team.router.requests.post", return_value=OpenRouterResponse()) as post:
+            openrouter_chat("key", "openrouter/free", "task")
+            self.assertIs(post.call_args.kwargs["allow_redirects"], False)
+
+        with patch("agent_team.router.requests.post", return_value=GeminiResponse()) as post:
+            gemini_chat("key", "gemini-test", "task")
+            self.assertIs(post.call_args.kwargs["allow_redirects"], False)
+
+        with patch("agent_team.router.requests.post", return_value=OpenRouterResponse()) as post:
+            freellmapi_chat("key", "auto", "task")
+            self.assertIs(post.call_args.kwargs["allow_redirects"], False)
+
+
 if __name__ == "__main__":
     unittest.main()
