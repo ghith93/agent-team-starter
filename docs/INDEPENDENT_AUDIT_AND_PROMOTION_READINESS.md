@@ -47,3 +47,16 @@ This is an evidence-based review of repository controls and promotion risks. It 
 ## No-cost execution policy
 
 The automated promotion gate runs offline tests, static skill metadata checks, a deterministic benchmark, compilation, and dependency audit. It does not configure API keys, call hosted models, deploy a service, publish content, or change accounts. The dependency audit needs package-index network access but does not require a paid service.
+
+
+## Additional repository-control evidence (checked 2026-10-23)
+
+- Repository visibility is private and the default branch is main.
+- The GitHub integration reports repository write/admin permissions, but the classic branch-protection endpoint returned `403 Resource not accessible by integration`. This does **not** prove protection is enabled or disabled.
+- The repository rulesets endpoint returned `403 Upgrade to GitHub Pro or make this repository public to enable this feature`. This indicates repository-level rulesets cannot be managed/read through that endpoint under the current private-repository plan. It does not prove that no classic branch protection exists.
+- PR #6 is open as Draft against main; it contains 81 changed files and 61 commits from its base. The integration branch itself is 59 commits ahead of main. This is a large source-restoration/release-scope review, not a narrow patch.
+- No PR review submissions were present at the time of this check.
+
+## Required action if plan does not support desired controls
+
+An authorized repository owner should inspect Settings → Branches directly and confirm what classic protections are available. If required review/check enforcement cannot be configured for this private repository on its current plan, keep the PR in Draft and use an explicit manual maintainer checklist; alternatively, consider a plan upgrade before making main the release branch. Do not make the repository public merely to expose ruleset APIs without a separate privacy decision.
