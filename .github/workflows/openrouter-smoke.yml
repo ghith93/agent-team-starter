@@ -1,16 +1,14 @@
 name: OpenRouter live agent-team integration
 
 on:
-  push:
-    branches:
-      - bridge/api-write-smoke-test
-    paths:
-      - .github/workflows/openrouter-smoke.yml
-      - agent_team/router.py
-      - agent_team/team.py
-      - tests/test_router.py
-      - requirements.txt
+  # Live provider calls are never triggered automatically by a push.
   workflow_dispatch:
+    inputs:
+      confirm_live_provider_calls:
+        description: "Explicitly authorize bounded OpenRouter requests; provider quota may be consumed."
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -21,6 +19,7 @@ concurrency:
 
 jobs:
   smoke-test:
+    if: inputs.confirm_live_provider_calls == true
     runs-on: ubuntu-latest
     timeout-minutes: 3
     env:
@@ -71,6 +70,7 @@ jobs:
           PY
 
   agent-team-live:
+    if: inputs.confirm_live_provider_calls == true
     runs-on: ubuntu-latest
     timeout-minutes: 8
     env:
