@@ -6,6 +6,10 @@ on:
       - bridge/api-write-smoke-test
     paths:
       - .github/workflows/openrouter-smoke.yml
+      - agent_team/router.py
+      - agent_team/team.py
+      - tests/test_router.py
+      - requirements.txt
   workflow_dispatch:
 
 permissions:
