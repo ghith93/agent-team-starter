@@ -1,62 +1,44 @@
 # Independent Audit and Promotion Readiness
 
-Audit date: 2026-10-23
-Candidate reviewed: `integration/github-mcp-access-check`
-Candidate merge commit: `cea453678238e088e2e4d1fbb2d75d41deb8a81b`
+Audit date: 2026-10-23  
+Code promotion: PR #6 merged to `main` at `f893acd7cbb76039de2eae9eba2dec5eb7190359`  
+PR head tested: `43864b57e62d892b3b2534ae56e70a088c2a42b8`
 
-## Purpose and scope
+## Current decision
 
-This is an evidence-based review of repository controls and promotion risks. It is not a penetration test, formal security certification, or proof of production readiness. Review of source and existing CI is independent of the project's model-based Reviewer stage, but it is not an external third-party audit.
+**Source-code promotion to the private `main` branch is complete. Production deployment or live-provider certification is not approved by this document.** PR #6 was merged after its exact head passed the offline regression/evaluator suite, promotion-readiness gate, Gitleaks, Bandit, pip-audit, Semgrep, and detect-secrets checks. These checks do not prove live-model quality, live quota availability, egress-proxy safety, or production readiness.
 
-## Verified evidence
+## Verified promotion evidence
 
-- PR #4 is merged into `integration/github-mcp-access-check`, not `main`.
-- Post-merge offline regression/evaluator checks and Gitleaks passed on the merge commit.
-- Python SAST, secrets, and dependency audit completed successfully on the post-merge workflow run recorded in issue #5.
-- The project has no code-execution or browser/account-control capability through model prompts; generated text is not executed by the team workflow.
-- Router retries are bounded to one retry for transient errors; authentication/permission and invalid-request errors are not retried as transient errors.
-- Stage input is bounded to 12,000 characters and each model stage output to 30,000 characters. Telemetry is opt-in and records stage metadata rather than task/output text.
-- URL retrieval fails closed without `AGENT_TEAM_TRUSTED_EGRESS_PROXY`, blocks redirects, disables ambient proxy inheritance, and enforces response size/time bounds.
+- PR #6: https://github.com/ghith93/agent-team-starter/pull/6 — merged 2026-10-23.
+- Merge commit: `f893acd7cbb76039de2eae9eba2dec5eb7190359`.
+- Tested PR head: `43864b57e62d892b3b2534ae56e70a088c2a42b8`.
+- Offline regression/evaluator run: https://github.com/ghith93/agent-team-starter/actions/runs/39997941112 — success.
+- Promotion-readiness gate: https://github.com/ghith93/agent-team-starter/actions/runs/39997941120 — success.
+- Security scans: https://github.com/ghith93/agent-team-starter/actions/runs/39997941098 — success (Gitleaks, Bandit, pip-audit, Semgrep, detect-secrets).
+- Main branch now contains the source tree, tests, evaluation tools, security workflows, audit runbooks, and optional FreeLLMAPI adapter.
+- GitHub's branch metadata reports `main.protected = false` at the time of this check. Branch protection and required review enforcement are therefore not active according to that metadata; configure them separately if supported by the current repository plan.
 
-## Risks and limitations still open
+## Security and reliability observations
 
-1. **Main branch protection is unknown.** The available GitHub integration received HTTP 403 when querying branch protection. Do not interpret this as proof that protection is absent. An owner/admin must inspect repository Settings → Rules/Branches and verify required reviews/checks, force-push/deletion restrictions, and bypass permissions.
-2. **Network egress remains an external trust boundary.** URL syntax/DNS checks do not fully prevent DNS rebinding or guarantee what IP a proxy ultimately connects to. Any deployment enabling page retrieval must verify that the configured egress proxy blocks loopback, private, link-local, reserved, and metadata-service destinations after DNS resolution and at connection time.
-3. **Prompt-injection resistance is not guaranteed.** Role separation and offline fixtures are defense-in-depth. The existing fixture suite is not a live adversarial evaluation of hosted models.
-4. **Provider behavior and answer quality remain unproven for this merge commit.** Offline checks do not establish current quotas, service availability, factual accuracy, or live task success. No live-provider test is required by the promotion gate, so it can be run without provider keys or quota.
-5. **Scanner versions are not fully pinned.** The security workflow installs scanner packages at run time. Its recorded versions improve auditability but do not make every run reproducible.
-6. **Promotion size is substantial.** Integration is 59 commits ahead of main. Review the complete diff and release intent, not only the latest fix.
-7. **Live-provider smoke test trigger is not a substitute for a release gate.** The existing live test is scoped to its configured branch and may use provider quota. It must not be described as a post-merge live verification unless a run against the exact candidate SHA is found.
+1. **Network egress is an external trust boundary.** URL syntax/DNS checks do not fully prevent DNS rebinding or guarantee the final IP contacted by a proxy. Before enabling URL retrieval in a deployed service, verify the egress proxy blocks loopback, private, link-local, reserved, and metadata-service destinations after DNS resolution and at connection time.
+2. **Prompt-injection resistance is not guaranteed.** Role separation and offline fixtures are defense-in-depth, not a proof of safety against adversarial live content.
+3. **Live behavior is unverified.** No live hosted-model call was made for this promotion. The offline benchmark explicitly marks live-model/human tasks as not run. No statement of 100% success, factual accuracy, or provider uptime is justified.
+4. **FreeLLMAPI is optional.** It is disabled unless `FREELLMAPI_API_KEY` is configured. Keep the gateway bound to loopback for local use, never expose its single-user API publicly, use HTTPS for any remote endpoint, and verify the installed model/profile against `/v1/models`. The upstream release reviewed on this date is v0.16.8: https://github.com/tashfeenahmed/freellmapi/releases/tag/v0.16.8.
+5. **Free-tier availability and terms can change.** Do not assume zero cost, unlimited use, commercial-use rights, privacy parity across providers, or an SLA.
+6. **Scanner reproducibility is partial.** Security tooling is installed during CI, so exact tool versions can vary between runs.
+7. **Repository controls need improvement.** Main was not protected at the time of the post-merge check. Do not use the lack of protection as a reason to bypass review; configure branch rules and required checks before the next release.
 
-## Promotion checklist
+## Post-promotion production checklist
 
-- [ ] Repository owner verifies main branch rules and records evidence.
-- [ ] Review the integration-to-main diff and confirm all 59 commits belong in the release.
-- [ ] Open a dedicated promotion PR from integration to main; do not push directly to main.
-- [ ] Require the promotion-gate workflow and existing security/offline workflows to pass on the exact PR head.
-- [ ] Review benchmark reports and distinguish offline deterministic checks from live-model/human checks marked not run.
-- [ ] Decide whether a live-provider test is justified; check quota and cost first and require explicit approval before any potentially billable request.
-- [ ] Verify an egress proxy's actual network policy before enabling URL retrieval in a deployed service.
-- [ ] Obtain human review/approval from an authorized repository maintainer.
-- [ ] Merge only after all above conditions are satisfied; retain workflow links and rollback commit.
+- [ ] Configure branch protection / required checks for `main` if available on the repository plan.
+- [ ] Verify the egress proxy's actual connection-time policy before enabling web retrieval in any deployment.
+- [ ] Run the documented live/human evaluation tasks using synthetic data and owner-approved provider credentials. Obtain approval before any potentially billable call.
+- [ ] Verify local FreeLLMAPI installation, bind address, Host-header allowlist, provider terms, and a harmless smoke test before relying on it.
+- [ ] Review data handling and retention terms before sending private or customer data to any third-party provider.
+- [ ] Review dependency and scanner updates periodically; rerun all CI gates on every material change.
+- [ ] Obtain an authorized maintainer review before any public release or production deployment.
 
-## Decision
+## Cost and execution policy
 
-**Not approved for automatic promotion yet.** CI is green, but branch protection is unverified, the candidate contains 59 commits beyond main, and network/live-model risks require explicit review. Keep main unchanged until the checklist is completed.
-
-## No-cost execution policy
-
-The automated promotion gate runs offline tests, static skill metadata checks, a deterministic benchmark, compilation, and dependency audit. It does not configure API keys, call hosted models, deploy a service, publish content, or change accounts. The dependency audit needs package-index network access but does not require a paid service.
-
-
-## Additional repository-control evidence (checked 2026-10-23)
-
-- Repository visibility is private and the default branch is main.
-- The GitHub integration reports repository write/admin permissions, but the classic branch-protection endpoint returned `403 Resource not accessible by integration`. This does **not** prove protection is enabled or disabled.
-- The repository rulesets endpoint returned `403 Upgrade to GitHub Pro or make this repository public to enable this feature`. This indicates repository-level rulesets cannot be managed/read through that endpoint under the current private-repository plan. It does not prove that no classic branch protection exists.
-- PR #6 is open as Draft against main; it contains 81 changed files and 61 commits from its base. The integration branch itself is 59 commits ahead of main. This is a large source-restoration/release-scope review, not a narrow patch.
-- No PR review submissions were present at the time of this check.
-
-## Required action if plan does not support desired controls
-
-An authorized repository owner should inspect Settings → Branches directly and confirm what classic protections are available. If required review/check enforcement cannot be configured for this private repository on its current plan, keep the PR in Draft and use an explicit manual maintainer checklist; alternatively, consider a plan upgrade before making main the release branch. Do not make the repository public merely to expose ruleset APIs without a separate privacy decision.
+CI and offline tests do not require hosted model API keys or paid requests. Live evaluations are a separate, explicitly approved operation. No live-provider requests, paid service calls, public publishing, or production deployment were performed during this source promotion.
