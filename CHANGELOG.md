@@ -1,3 +1,10 @@
+## 2026-10-23 — Operational baseline preparation
+
+- Added `STATE.md`, `ROADMAP.md`, and `RUNBOOK.md` on the isolated repair branch.
+- Added `LICENSE_PENDING.md` to record that licensing intent must be decided before adding a root license.
+- Created a pre-audit recovery reference branch. This is not an independent off-platform backup.
+- No live provider calls, public deployment, or account-wide security setting changes were performed.
+
 # Changelog
 
 ## v0.9.1-rc16 — bounded stage outputs and safer failure messages
