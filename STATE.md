@@ -54,3 +54,18 @@ A free-first Python multi-agent workflow (planner → executor → reviewer) wit
 4. Design monitoring and backup only after confirming the deployment target and available secrets.
 5. Verify GitHub repository security settings and branch protection in repository settings.
 6. Open a pull request after the changes pass; do not merge automatically.
+
+
+## Update after first repair-branch validation — 2026-10-23 18:35 UTC
+- Pull request opened as draft: https://github.com/ghith93/agent-team-starter/pull/16
+- YAML syntax validation passed: https://github.com/ghith93/agent-team-starter/actions/runs/40004421410
+- Offline regression checks passed: https://github.com/ghith93/agent-team-starter/actions/runs/40004421199
+- Tests and security scans workflow passed: https://github.com/ghith93/agent-team-starter/actions/runs/40004421478
+- The successful security workflow included Bandit, pip-audit, Semgrep, detect-secrets, and Gitleaks steps. This is evidence of workflow success for this commit only, not a guarantee that no secret exists anywhere or that repository-level push protection is enabled.
+- Created follow-up issues:
+  - https://github.com/ghith93/agent-team-starter/issues/17 — verify repository security settings and main-branch rules.
+  - https://github.com/ghith93/agent-team-starter/issues/18 — independent backup and restore drill.
+  - https://github.com/ghith93/agent-team-starter/issues/19 — runtime monitoring and mobile alerting.
+- The web research module already fails closed unless an explicitly configured trusted egress proxy is present; its docstring and README warn that the proxy must enforce destination restrictions. This is an existing mitigation, not a newly added fix in this PR.
+- No deployment target or health endpoint has been confirmed, so a truthful 24/7 monitor cannot yet be configured without guessing.
+- Current pull request remains a draft and has not been merged.
