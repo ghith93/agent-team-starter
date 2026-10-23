@@ -1,0 +1,60 @@
+name: Temporary archive restore audit
+
+on:
+  push:
+    branches:
+      - bridge/api-write-smoke-test
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout bridge branch
+        uses: actions/checkout@v4
+      - name: Verify archive integrity and inspect project
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, pathlib, zipfile
+          p = pathlib.Path("agent_team_starter_restore.zip")
+          expected_size = 98706
+          expected_sha256 = "aaf02c67527745e281d287f122e115ddd5e97764c9ae9f9ee989bdc7cff9d7c0"
+          assert p.is_file(), "Archive missing"
+          data = p.read_bytes()
+          actual = hashlib.sha256(data).hexdigest()
+          print(f"archive_size={len(data)}")
+          print(f"archive_sha256={actual}")
+          assert len(data) == expected_size, f"Unexpected size: {len(data)}"
+          assert actual == expected_sha256, "SHA-256 mismatch: uploaded archive differs from original"
+          with zipfile.ZipFile(p) as z:
+              bad = z.testzip()
+              assert bad is None, f"Corrupt ZIP member: {bad}"
+              names = z.namelist()
+              print(f"archive_entries={len(names)}")
+              print("ARCHIVE CONTENTS:")
+              for name in names:
+                  print(name)
+              target = pathlib.Path("/tmp/agent-team-starter-restore")
+              z.extractall(target)
+          print("ZIP integrity: PASS")
+          PY
+      - name: Run Python test suite when present
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT=/tmp/agent-team-starter-restore
+          echo "Extracted root candidates:"
+          find "$ROOT" -maxdepth 3 -type f | sort | head -250
+          if find "$ROOT" -type f \( -name 'pytest.ini' -o -name 'pyproject.toml' -o -name 'conftest.py' -o -name 'test_*.py' -o -name '*_test.py' \) | grep -q .; then
+            python -m pip install --disable-pip-version-check pytest
+            cd "$ROOT"
+            python -m pytest -q
+          else
+            echo "No pytest-style Python tests detected; archive audit completed."
+          fi
