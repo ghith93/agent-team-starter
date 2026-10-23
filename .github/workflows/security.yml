@@ -118,6 +118,7 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
+      pull-requests: read
     steps:
       - name: Checkout full history for secret detection
         uses: actions/checkout@v7
