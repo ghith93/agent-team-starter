@@ -48,6 +48,35 @@ class RouterTests(unittest.TestCase):
         )
         self.assertEqual(router.ask("test").text, "fallback works")
 
+    def test_retries_transient_provider_failure_once(self):
+        calls = []
+        def flaky_openrouter(key, model, prompt, *, system_prompt=""):
+            calls.append(model)
+            if len(calls) == 1:
+                raise ProviderError("provider_unavailable", 503)
+            return "recovered"
+        router = FreeFirstRouter(
+            gemini_key="", openrouter_key="o",
+            free_models=["openrouter/free"], openrouter_call=flaky_openrouter,
+        )
+        result = router.ask("test")
+        self.assertEqual(result.text, "recovered")
+        self.assertEqual(calls, ["openrouter/free", "openrouter/free"])
+
+    def test_does_not_retry_authentication_failure(self):
+        calls = []
+        def unauthorized(key, model, prompt, *, system_prompt=""):
+            calls.append(model)
+            raise ProviderError("authentication_or_permission", 401)
+        router = FreeFirstRouter(
+            gemini_key="", openrouter_key="o",
+            free_models=["openrouter/free", "other/model:free"],
+            openrouter_call=unauthorized,
+        )
+        with self.assertRaises(ProviderError):
+            router.ask("test")
+        self.assertEqual(calls, ["openrouter/free"])
+
     def test_no_keys_fails_closed(self):
         router = FreeFirstRouter(gemini_key="", openrouter_key="", free_models=[])
         with self.assertRaises(ProviderError):
