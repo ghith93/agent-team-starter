@@ -1,0 +1,9 @@
+title = "Agent Team Starter Gitleaks configuration"
+
+[allowlist]
+description = "Exact synthetic credential fixtures used only by API-key redaction unit tests; these are not usable credentials."
+paths = ['''tests/test_router\.py''']
+regexes = [
+  '''test_key_echo_marker_73921''',
+  '''test_key_echo_marker_28463''',
+]
