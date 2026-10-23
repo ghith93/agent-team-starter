@@ -77,7 +77,7 @@ jobs:
       - name: detect-secrets baseline scan
         id: detect_secrets
         continue-on-error: true
-        run: detect-secrets scan --all-files --exclude-files '(^|/)(\.git|\.venv|venv|security-reports)/' --exclude-lines '(GEMINI_API_KEY|OPENROUTER_API_KEY|https://user:pass@example\.com|http://user:secret@proxy\.example:8080)' > security-reports/detect-secrets.json
+        run: detect-secrets scan --all-files --exclude-files '(^|/)(\.git|\.venv|venv|security-reports)/' --exclude-lines '(https://user:pass@example\.com|http://user:secret@proxy\.example:8080)' > security-reports/detect-secrets.json
       - name: Fail if detect-secrets found candidates
         id: detect_secrets_gate
         if: steps.detect_secrets.outcome == 'success'
