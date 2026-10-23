@@ -1,0 +1,1 @@
+order_id,created_at,source,campaign_id,ad_id,customer_key_pseudonymous,region,product_sku,quantity,unit_price,unit_product_cost,discount_amount,delivery_fee_charged,delivery_cost_paid,payment_fee,order_status,fulfillment_status,delivered_at,returned_at,return_loss,first_time_customer,notes
