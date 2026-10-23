@@ -13,6 +13,7 @@ These are local/offline results only. They do not establish live-model quality, 
 - [Access boundaries and approval gates](docs/ACCESS_AND_AUTOMATION_BOUNDARIES.md)
 - [Meta Ads MCP read-only setup runbook](docs/META_ADS_READ_ONLY_SETUP.md)
 - [Delivered-order measurement contract](docs/DELIVERED_ORDER_METRICS.md)
+- [Order ledger CSV template](templates/order_ledger.csv)
 
 ## Intended integration direction
 
