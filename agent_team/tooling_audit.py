@@ -28,7 +28,7 @@ def collect_inventory() -> dict:
         "execution_mode": "local_discovery_only",
         "network_calls": 0,
         "installations_performed": 0,
-        "secret_values_read": False,
+        "secret_values_read": False,  # nosec B105 - boolean metadata flag, not a credential
         "commands": commands,
         "python_modules": modules,
         "limitations": [
