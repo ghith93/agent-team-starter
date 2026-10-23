@@ -63,6 +63,26 @@ class RouterTests(unittest.TestCase):
         self.assertEqual(result.text, "recovered")
         self.assertEqual(calls, ["openrouter/free", "openrouter/free"])
 
+    def test_retries_empty_success_response_once(self):
+        calls = []
+        class Response:
+            status_code = 200
+            def __init__(self, content):
+                self.content = content
+            def json(self):
+                return {"choices": [{"message": {"content": self.content}}]}
+        def response_sequence(*args, **kwargs):
+            calls.append(1)
+            return Response("" if len(calls) == 1 else "recovered")
+        router = FreeFirstRouter(
+            gemini_key="", openrouter_key="test-key",
+            free_models=["openrouter/free"],
+        )
+        with patch("agent_team.router.requests.post", side_effect=response_sequence):
+            result = router.ask("test")
+        self.assertEqual(result.text, "recovered")
+        self.assertEqual(len(calls), 2)
+
     def test_does_not_retry_authentication_failure(self):
         calls = []
         def unauthorized(key, model, prompt, *, system_prompt=""):
