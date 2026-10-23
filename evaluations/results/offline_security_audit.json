@@ -1,0 +1,19 @@
+{
+  "audit": "offline_static_hygiene",
+  "files_scanned": 63,
+  "findings": [],
+  "dependency_notes": [],
+  "summary": {
+    "high_confidence_secret_candidates": 0,
+    "read_errors": 0,
+    "manual_review_items": 0,
+    "dependency_notes": 0
+  },
+  "status": "pass",
+  "limitations": [
+    "Offline heuristic scan only; may miss secrets and may produce false positives.",
+    "Not a substitute for Gitleaks, Semgrep, OSV-Scanner, pip-audit, threat modeling, or human review.",
+    "Does not query vulnerability databases or establish dependency vulnerability status.",
+    "Review-level code patterns are leads for manual review, not proof of vulnerabilities."
+  ]
+}
