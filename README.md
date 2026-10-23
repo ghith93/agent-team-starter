@@ -32,7 +32,7 @@ Use environment variables or Colab Secrets. Never hard-code real credentials.
 export GEMINI_API_KEY="..."
 export OPENROUTER_API_KEY="..."
 # Optional local FreeLLMAPI gateway (only enabled when its unified key is set):
-export FREELLMAPI_API_KEY="freellmapi-your-local-unified-key"
+export FREELLMAPI_API_KEY="..."
 export FREELLMAPI_BASE_URL="http://127.0.0.1:3001/v1"
 export FREELLMAPI_MODEL="auto"
 # Optional: GEMINI_MODEL=...; OPENROUTER_FREE_MODELS=openrouter/free,provider/model:free
