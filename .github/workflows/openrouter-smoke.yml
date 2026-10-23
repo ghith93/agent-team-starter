@@ -1,0 +1,81 @@
+name: OpenRouter free-model smoke test
+
+on:
+  push:
+    branches:
+      - bridge/api-write-smoke-test
+    paths:
+      - .github/workflows/openrouter-smoke.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: openrouter-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Verify one OpenRouter free-model response
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import sys
+          import urllib.error
+          import urllib.request
+
+          key = os.environ.get("OPENROUTER_API_KEY", "").strip()
+          if not key:
+              print("FAIL: OPENROUTER_API_KEY repository secret is missing or unavailable.")
+              sys.exit(1)
+
+          payload = json.dumps({
+              "model": "openrouter/free",
+              "messages": [{"role": "user", "content": "Reply with exactly OK."}],
+              "max_tokens": 8,
+              "temperature": 0
+          }).encode("utf-8")
+          request = urllib.request.Request(
+              "https://openrouter.ai/api/v1/chat/completions",
+              data=payload,
+              headers={
+                  "Authorization": "Bearer " + key,
+                  "Content-Type": "application/json",
+              },
+              method="POST",
+          )
+          try:
+              with urllib.request.urlopen(request, timeout=25) as response:
+                  if response.status != 200:
+                      print("FAIL: OpenRouter returned HTTP", response.status)
+                      sys.exit(1)
+                  data = json.loads(response.read().decode("utf-8"))
+          except urllib.error.HTTPError as exc:
+              print("FAIL: OpenRouter returned HTTP", exc.code, "(response body suppressed)")
+              sys.exit(1)
+          except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+              print("FAIL: OpenRouter request did not complete:", type(exc).__name__)
+              sys.exit(1)
+
+          try:
+              content = data["choices"][0]["message"]["content"]
+          except (KeyError, IndexError, TypeError):
+              print("FAIL: OpenRouter response had an unexpected shape.")
+              sys.exit(1)
+
+          if not isinstance(content, str) or not content.strip():
+              print("FAIL: OpenRouter returned no text.")
+              sys.exit(1)
+
+          model = data.get("model", "unknown")
+          print("PASS: OpenRouter returned a non-empty response.")
+          print("Returned model:", str(model)[:120])
+          print("Response content and credentials were not printed.")
+          PY
