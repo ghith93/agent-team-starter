@@ -100,8 +100,8 @@ jobs:
           python - <<'PY'
           import os
           import sys
-          from agent_team.router import FreeFirstRouter
-          from agent_team.team import run_team
+          from agent_team.router import FreeFirstRouter, ProviderError, classify_http_error
+          from agent_team.team import TeamExecutionError, run_team
 
           if not os.environ.get("OPENROUTER_API_KEY", "").strip():
               print("FAIL: OpenRouter repository secret is missing or unavailable.")
@@ -112,6 +112,19 @@ jobs:
                   "Create a concise checklist for safely testing a software feature without publishing it.",
                   router=FreeFirstRouter(),
               )
+          except TeamExecutionError as exc:
+              print("FAIL: Agent team failed at stage:", exc.stage)
+              cause = exc.cause
+              print("Cause type:", type(cause).__name__)
+              if isinstance(cause, ProviderError):
+                  if cause.status_code is not None:
+                      print("Provider HTTP status:", cause.status_code)
+                      print("Provider error category:", classify_http_error(cause.status_code))
+                  else:
+                      print("Provider error category: network_or_protocol")
+              else:
+                  print("Cause details suppressed to avoid leaking prompt or credential data.")
+              sys.exit(1)
           except Exception as exc:
               print("FAIL: Agent team execution failed:", type(exc).__name__)
               sys.exit(1)
