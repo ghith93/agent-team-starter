@@ -1,6 +1,7 @@
 # Changelog
 
 ## v0.9.1-rc16 — bounded stage outputs and safer failure messages
+- Follow-up hardening pins GitHub Actions to reviewed full commit SHAs and adds contract checks against mutable action tags.
 - Added a 30,000-character cap for each model stage output to limit accidental context growth and oversized responses.
 - Changed stage-failure summaries to avoid echoing raw custom-router/provider exception text into CLI output; the original exception remains available programmatically as `cause`.
 - Added regression tests for oversized stage outputs and exception-message redaction.
