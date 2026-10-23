@@ -206,8 +206,6 @@ class RouterTests(unittest.TestCase):
             gemini_chat("key", "gemini-test", "task")
             self.assertIs(post.call_args.kwargs["allow_redirects"], False)
 
-        with patch("agent_team.router.requests.post", return_value=OpenRouterResponse()) as post:
-
 
 if __name__ == "__main__":
     unittest.main()
