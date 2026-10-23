@@ -90,20 +90,20 @@ class RouterTests(unittest.TestCase):
         self.assertNotIn("secret-value", message)
 
     def test_provider_error_detail_redacts_exact_api_key_if_echoed(self):
-        api_key = "test_key_echo_marker_73921"
+        credential_fixture = "test_key_echo_marker_73921"
         class Response:
             status_code = 401
             text = "untrusted error body"
             def json(self):
-                return {"error": {"message": f"invalid credential {api_key}"}}
+                return {"error": {"message": f"invalid credential {credential_fixture}"}}
         with patch("agent_team.router.requests.post", return_value=Response()):
             with self.assertRaises(ProviderError) as caught:
-                openrouter_chat(api_key, "openrouter/free", "test")
-        self.assertNotIn(api_key, str(caught.exception))
+                openrouter_chat(credential_fixture, "openrouter/free", "test")
+        self.assertNotIn(credential_fixture, str(caught.exception))
         self.assertIn("[REDACTED]", str(caught.exception))
 
     def test_gemini_error_detail_redacts_exact_api_key_if_echoed(self):
-        api_key = "test_key_echo_marker_28463"
+        credential_fixture = "test_key_echo_marker_28463"
         class Response:
             status_code = 401
             text = "untrusted error body"
@@ -111,7 +111,7 @@ class RouterTests(unittest.TestCase):
                 return {"error": {"message": f"invalid credential {api_key}"}}
         with patch("agent_team.router.requests.post", return_value=Response()):
             with self.assertRaises(ProviderError) as caught:
-                gemini_chat(api_key, "gemini-test", "test")
+                gemini_chat(credential_fixture, "gemini-test", "test")
         self.assertNotIn(api_key, str(caught.exception))
         self.assertIn("[REDACTED]", str(caught.exception))
 
