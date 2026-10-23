@@ -89,6 +89,19 @@ class RouterTests(unittest.TestCase):
         self.assertNotIn("abc.def.ghi", message)
         self.assertNotIn("secret-value", message)
 
+    def test_provider_error_detail_redacts_exact_api_key_if_echoed(self):
+        api_key = "sk_live_exact-secret-value"
+        class Response:
+            status_code = 401
+            text = "untrusted error body"
+            def json(self):
+                return {"error": {"message": f"invalid credential {api_key}"}}
+        with patch("agent_team.router.requests.post", return_value=Response()):
+            with self.assertRaises(ProviderError) as caught:
+                openrouter_chat(api_key, "openrouter/free", "test")
+        self.assertNotIn(api_key, str(caught.exception))
+        self.assertIn("[REDACTED]", str(caught.exception))
+
     def test_openrouter_uses_separate_system_message(self):
         class Response:
             status_code = 200
