@@ -101,7 +101,7 @@ def gemini_chat(api_key: str, model: str, prompt: str, timeout: int = 45, *, sys
         raise ProviderError(f"Network error: {type(exc).__name__}") from exc
     if response.status_code != 200:
         category = classify_http_error(response.status_code, response.text[:500])
-        detail = _safe_provider_detail(response)
+        detail = _safe_provider_detail(response, (api_key,))
         suffix = f": {detail}" if detail else ""
         raise ProviderError(f"{category} (HTTP {response.status_code}){suffix}", response.status_code)
     try:
