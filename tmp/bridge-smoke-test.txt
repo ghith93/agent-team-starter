@@ -1,0 +1,3 @@
+GitHub API write-path smoke test.
+Purpose: verify the connected GitHub API can create, read, and delete a temporary text file on an isolated branch.
+No archive bytes, credentials, or secrets are included.
