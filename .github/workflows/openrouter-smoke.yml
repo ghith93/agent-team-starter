@@ -79,3 +79,51 @@ jobs:
           print("Returned model:", str(model)[:120])
           print("Response content and credentials were not printed.")
           PY
+
+  agent-team-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    env:
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      OPENROUTER_FREE_MODELS: openrouter/free
+    steps:
+      - name: Run planner, executor, and reviewer through the free-model router
+        run: |
+          python - <<'PY'
+          import os
+          import sys
+          from agent_team.router import FreeFirstRouter
+          from agent_team.team import run_team
+
+          if not os.environ.get("OPENROUTER_API_KEY", "").strip():
+              print("FAIL: OpenRouter repository secret is missing or unavailable.")
+              sys.exit(1)
+
+          try:
+              result = run_team(
+                  "Create a concise checklist for safely testing a software feature without publishing it.",
+                  router=FreeFirstRouter(),
+              )
+          except Exception as exc:
+              print("FAIL: Agent team execution failed:", type(exc).__name__)
+              sys.exit(1)
+
+          expected = ["plan", "draft", "review"]
+          trace = result.get("trace", [])
+          if result.get("ok") is not True or [item.get("stage") for item in trace] != expected:
+              print("FAIL: Agent team did not complete all three expected stages.")
+              sys.exit(1)
+          if any(item.get("status") != "success" for item in trace):
+              print("FAIL: One or more agent stages did not succeed.")
+              sys.exit(1)
+          if not isinstance(result.get("final"), str) or not result["final"].strip():
+              print("FAIL: Agent team produced no final draft.")
+              sys.exit(1)
+
+          print("PASS: planner, executor, and reviewer completed successfully.")
+          for item in trace:
+              print("Stage:", item["stage"], "| provider:", item.get("provider", "unknown"),
+                    "| model:", item.get("model", "unknown"),
+                    "| duration_ms:", item.get("duration_ms", "unknown"))
+          print("Task and model outputs were not printed.")
+          PY
