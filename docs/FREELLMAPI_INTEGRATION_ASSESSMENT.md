@@ -2,7 +2,7 @@
 
 **Assessment date:** 2026-10-23  
 **Repository reviewed:** https://github.com/tashfeenahmed/freellmapi  
-**Reviewed release:** v0.16.9 (latest release observed during this review)  
+**Reviewed release:** v0.16.8 (latest release observed on 2026-10-23)  
 **Decision:** suitable for a controlled, optional development fallback; not a production reliability guarantee.
 
 ## Executive assessment
@@ -24,7 +24,7 @@ For Agent Team Starter, the highest-value first step is **not** to replace the e
 
 Sources:
 - https://github.com/tashfeenahmed/freellmapi
-- https://github.com/tashfeenahmed/freellmapi/releases/tag/v0.16.9
+- https://github.com/tashfeenahmed/freellmapi/releases/tag/v0.16.8
 - https://github.com/tashfeenahmed/freellmapi/blob/main/docs/en/architecture/00-high-level-index.md
 - https://github.com/tashfeenahmed/freellmapi/blob/main/docs/en/api/01-rest-api.md
 - https://github.com/tashfeenahmed/freellmapi/blob/main/docs/en/install/01-install.md
