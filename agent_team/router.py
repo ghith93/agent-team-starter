@@ -137,6 +137,14 @@ class FreeFirstRouter:
         self.openrouter_call = openrouter_call
 
     @staticmethod
+    def _is_transient_provider_error(exc: ProviderError) -> bool:
+        # Empty/malformed transient responses and network errors have no status code.
+        # Retry rate limits and server errors once; never retry auth/payment/invalid requests.
+        return exc.status_code is None or exc.status_code == 429 or (
+            exc.status_code is not None and 500 <= exc.status_code <= 599
+        )
+
+    @staticmethod
     def _call_provider(call: Callable, args: tuple, system_prompt: str) -> str:
         """Pass a system instruction when the provider callable supports it.
 
@@ -155,6 +163,17 @@ class FreeFirstRouter:
             return call(*args, system_prompt=system_prompt)
         return call(*args)
 
+    @classmethod
+    def _call_provider_with_retry(cls, call: Callable, args: tuple, system_prompt: str) -> str:
+        # One bounded retry absorbs occasional free-router empty responses and transient network/provider failures.
+        for attempt in range(2):
+            try:
+                return cls._call_provider(call, args, system_prompt)
+            except ProviderError as exc:
+                if attempt == 0 and cls._is_transient_provider_error(exc):
+                    continue
+                raise
+
     def ask(self, prompt: str, *, system_prompt: str = "") -> ModelResult:
         if not isinstance(prompt, str) or not prompt.strip():
             raise ValueError("Prompt must be a non-empty string.")
@@ -162,14 +181,14 @@ class FreeFirstRouter:
         if self.gemini_key:
             try:
                 return ModelResult("Gemini", self.gemini_model,
-                                   self._call_provider(self.gemini_call, (self.gemini_key, self.gemini_model, prompt), system_prompt))
+                                   self._call_provider_with_retry(self.gemini_call, (self.gemini_key, self.gemini_model, prompt), system_prompt))
             except ProviderError as exc:
                 failures.append(f"Gemini: {classify_http_error(exc.status_code) if exc.status_code else type(exc).__name__}" )
         if self.openrouter_key:
             for model in self.free_models:
                 try:
                     return ModelResult("OpenRouter", model,
-                                       self._call_provider(self.openrouter_call, (self.openrouter_key, model, prompt), system_prompt))
+                                       self._call_provider_with_retry(self.openrouter_call, (self.openrouter_key, model, prompt), system_prompt))
                 except ProviderError as exc:
                     failures.append(f"{model}: {classify_http_error(exc.status_code) if exc.status_code else type(exc).__name__}")
                     # Authentication/payment failures usually affect the whole key/account.
