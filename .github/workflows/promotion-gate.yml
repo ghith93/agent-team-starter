@@ -1,0 +1,51 @@
+name: Promotion readiness gate
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: promotion-gate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline-promotion-gate:
+    name: Offline tests, deterministic benchmark, and dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - name: Install runtime dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Run offline release gates
+        run: python run_tests.py
+      - name: Validate reusable skill metadata
+        run: python -m agent_team.skill_lint .
+      - name: Run deterministic offline benchmark
+        run: python evaluations/offline_benchmark.py
+      - name: Compile Python sources
+        run: python -m compileall -q agent_team evaluations tests
+      - name: Audit declared dependency vulnerabilities
+        run: |
+          python -m pip install pip-audit
+          python -m pip_audit -r requirements.txt
+      - name: Upload deterministic benchmark report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: promotion-readiness-report
+          path: evaluations/results/offline_deterministic_report.json
+          if-no-files-found: warn
+          retention-days: 14
