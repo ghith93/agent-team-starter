@@ -88,60 +88,6 @@ def openrouter_chat(api_key: str, model: str, prompt: str, timeout: int = 45, *,
 
 
 
-def freellmapi_chat(
-    api_key: str,
-    model: str,
-    prompt: str,
-    base_url: str = "http://127.0.0.1:3001/v1",
-    timeout: int = 45,
-    *,
-    system_prompt: str = "",
-) -> str:
-    """Call an optional FreeLLMAPI OpenAI-compatible endpoint.
-
-    Plain HTTP is permitted only for loopback hosts. Remote endpoints must use HTTPS
-    so a unified bearer key is never sent over cleartext transport.
-    """
-    from urllib.parse import urlsplit
-
-    base_url = base_url.strip().rstrip("/")
-    parsed = urlsplit(base_url)
-    if parsed.scheme not in ("http", "https") or not parsed.hostname:
-        raise ProviderError("Invalid FreeLLMAPI base URL.")
-    if parsed.username or parsed.password or parsed.query or parsed.fragment:
-        raise ProviderError("FreeLLMAPI base URL must not contain credentials, query, or fragment.")
-    host = parsed.hostname.lower().rstrip(".")
-    loopback_hosts = {"localhost", "127.0.0.1", "::1"}
-    if parsed.scheme == "http" and host not in loopback_hosts:
-        raise ProviderError("FreeLLMAPI remote endpoints require HTTPS.")
-    if not parsed.path.rstrip("/").endswith("/v1"):
-        raise ProviderError("FreeLLMAPI base URL must end in /v1.")
-    url = f"{base_url}/chat/completions"
-    messages = ([{"role": "system", "content": system_prompt}] if system_prompt else [])
-    messages.append({"role": "user", "content": prompt})
-    try:
-        response = requests.post(
-            url,
-            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-            json={"model": model, "messages": messages, "max_tokens": 1200},
-            timeout=timeout,
-            allow_redirects=False,
-        )
-    except requests.RequestException as exc:
-        raise ProviderError(f"Network error: {type(exc).__name__}") from exc
-    if response.status_code != 200:
-        category = classify_http_error(response.status_code, response.text[:500])
-        detail = _safe_provider_detail(response, (api_key,))
-        suffix = f": {detail}" if detail else ""
-        raise ProviderError(f"{category} (HTTP {response.status_code}){suffix}", response.status_code)
-    try:
-        text = response.json()["choices"][0]["message"]["content"]
-    except (ValueError, KeyError, IndexError, TypeError) as exc:
-        raise ProviderError("Malformed response from FreeLLMAPI") from exc
-    if not isinstance(text, str) or not text.strip():
-        raise ProviderError("Provider returned empty text")
-    return text.strip()
-
 
 def gemini_chat(api_key: str, model: str, prompt: str, timeout: int = 45, *, system_prompt: str = "") -> str:
     # REST endpoint avoids adding a second SDK dependency.
@@ -180,17 +126,9 @@ class FreeFirstRouter:
         free_models: Optional[list[str]] = None,
         gemini_call: Callable = gemini_chat,
         openrouter_call: Callable = openrouter_chat,
-        freellmapi_key: Optional[str] = None,
-        freellmapi_base_url: Optional[str] = None,
-        freellmapi_model: Optional[str] = None,
-        freellmapi_call: Callable = freellmapi_chat,
     ):
         self.gemini_key = (gemini_key if gemini_key is not None else os.getenv("GEMINI_API_KEY", "")).strip()
         self.openrouter_key = (openrouter_key if openrouter_key is not None else os.getenv("OPENROUTER_API_KEY", "")).strip()
-        self.freellmapi_key = (freellmapi_key if freellmapi_key is not None else os.getenv("FREELLMAPI_API_KEY", "")).strip()
-        self.freellmapi_base_url = (freellmapi_base_url or os.getenv("FREELLMAPI_BASE_URL", "http://127.0.0.1:3001/v1")).strip()
-        self.freellmapi_model = (freellmapi_model or os.getenv("FREELLMAPI_MODEL", "auto")).strip()
-        self.freellmapi_call = freellmapi_call
         self.gemini_model = (gemini_model or os.getenv("GEMINI_MODEL", "gemini-2.5-flash")).strip()
         raw = os.getenv(
             "OPENROUTER_FREE_MODELS",
@@ -250,19 +188,6 @@ class FreeFirstRouter:
                                    self._call_provider_with_retry(self.gemini_call, (self.gemini_key, self.gemini_model, prompt), system_prompt))
             except ProviderError as exc:
                 failures.append(f"Gemini: {classify_http_error(exc.status_code) if exc.status_code else type(exc).__name__}" )
-        if self.freellmapi_key:
-            try:
-                result = self._call_provider_with_retry(
-                    self.freellmapi_call,
-                    (self.freellmapi_key, self.freellmapi_model, prompt, self.freellmapi_base_url),
-                    system_prompt,
-                )
-                return ModelResult("FreeLLMAPI", self.freellmapi_model, result)
-            except ProviderError as exc:
-                failures.append(f"FreeLLMAPI: {classify_http_error(exc.status_code) if exc.status_code else type(exc).__name__}")
-                if exc.status_code in (401, 403, 402):
-                    # Bad unified credentials or account state won't be fixed by retrying this gateway.
-                    pass
         if self.openrouter_key:
             for model in self.free_models:
                 try:
