@@ -6,14 +6,14 @@ This roadmap prioritizes evidence, reversible changes, and free/open-source opti
 - [x] Establish a pre-audit recovery branch.
 - [x] Record the current verified state and known unknowns.
 - [x] Add an initial iPhone-friendly runbook.
-- [ ] Verify all CI and security workflows on the repair branch.
-- [ ] Review .gitignore and environment example.
-- [ ] Review repository history for credential exposure using a history-aware scanner.
+- [x] Verify all CI and security workflows on the repair branch (latest recorded run passed).
+- [x] Review .gitignore and environment example; confirm `.env.example` remains trackable.
+- [x] Run Gitleaks against full repository history and working tree in CI; this is not a guarantee that no credential exists outside scanned scope.
 
 ## Phase B — Repository safeguards
 - [ ] Enable an appropriate main-branch ruleset/protection (require PR and successful checks where supported).
 - [ ] Verify Secret Scanning and Push Protection availability and state.
-- [ ] Keep Gitleaks scanning on pushes and pull requests; verify failure behavior with a synthetic test fixture that contains no real credential.
+- [ ] Keep Gitleaks scanning on pushes and pull requests; separately verify failure behavior with a synthetic test fixture that contains no real credential.
 - [ ] Review permissions and pin third-party GitHub Actions to verified immutable commit SHAs.
 - [ ] Decide on a root license after confirming the intended reuse/distribution policy.
 
