@@ -47,13 +47,12 @@ A free-first Python multi-agent workflow (planner → executor → reviewer) wit
 - Before risky changes, preserve a recovery point and document rollback.
 - Treat all automated scan findings as candidates requiring review; never silence broad patterns merely to make a workflow green.
 
-## Next actions
-1. Run CI, YAML validation, and security checks on this branch.
-2. Review and tighten `.gitignore` without excluding security-relevant files.
-3. Inspect the complete secret-scanning workflow and ensure Gitleaks runs on pull requests and pushes.
-4. Design monitoring and backup only after confirming the deployment target and available secrets.
-5. Verify GitHub repository security settings and branch protection in repository settings.
-6. Open a pull request after the changes pass; do not merge automatically.
+## Next actions (updated 2026-10-23 18:37 UTC)
+1. Continue checking CI after documentation updates; the latest completed validation before these documentation-only edits passed YAML syntax, offline regression, promotion readiness, and security scanning.
+2. Confirm Gitleaks failure behavior with a synthetic, non-secret fixture; history and working-tree scan passed, but a clean scan is not proof that all credentials are absent.
+3. Review repository settings in GitHub UI because the connected integration cannot access the branch-protection endpoint (HTTP 403); do not infer that Secret Scanning or Push Protection is enabled.
+4. Identify the actual runtime/deployment target before designing external monitoring or backups.
+5. Keep PR #16 in draft and unmerged until the final CI run and review are complete.
 
 
 ## Update after first repair-branch validation — 2026-10-23 18:35 UTC
@@ -69,3 +68,11 @@ A free-first Python multi-agent workflow (planner → executor → reviewer) wit
 - The web research module already fails closed unless an explicitly configured trusted egress proxy is present; its docstring and README warn that the proxy must enforce destination restrictions. This is an existing mitigation, not a newly added fix in this PR.
 - No deployment target or health endpoint has been confirmed, so a truthful 24/7 monitor cannot yet be configured without guessing.
 - Current pull request remains a draft and has not been merged.
+
+
+## Validation update — 2026-10-23 18:37 UTC
+- Latest fully completed CI run for commit `066c0f1e2e1ca923a6cba53c237365384965519c`: YAML syntax passed, offline regression passed, promotion readiness gate passed, and security workflow passed. Evidence: https://github.com/ghith93/agent-team-starter/actions/runs/40004647942, https://github.com/ghith93/agent-team-starter/actions/runs/40004647928, https://github.com/ghith93/agent-team-starter/actions/runs/40004647905, https://github.com/ghith93/agent-team-starter/actions/runs/40004637176
+- Gitleaks job scanned full history and working tree and passed; Bandit, pip-audit, Semgrep, and detect-secrets steps passed in the same security workflow.
+- PR #16 is open, draft, unmerged, and currently reported mergeable by GitHub: https://github.com/ghith93/agent-team-starter/pull/16
+- Repository is private. Reading main branch protection returned HTTP 403 from the connected integration, so protection status must be verified in GitHub settings; no settings were changed.
+- Follow-up work is tracked in issues #17, #18, and #19.
