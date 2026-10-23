@@ -32,4 +32,12 @@ The workflow uploads `offline-test-reports` and `python-security-reports` artifa
 3. Open **Actions → Tests and security scans** and inspect the first run.
 4. Download the two report artifacts. Keep the run URL and artifact reports with the release evidence.
 
-No repository was pushed and no GitHub Actions workflow was run as part of preparing this local release candidate.
+## Verified restoration candidate run
+
+For the restored candidate currently proposed in PR #4, GitHub Actions has completed successfully:
+
+- [Tests and security scans run](https://github.com/ghith93/agent-team-starter/actions/runs/39980384727): offline regression/evaluator job, Gitleaks secret scan, and Python SAST/secrets/dependency-audit job all passed.
+- [Offline regression checks run](https://github.com/ghith93/agent-team-starter/actions/runs/39980384739): passed.
+- The earlier successful security run's reports are available from [run 39980376092](https://github.com/ghith93/agent-team-starter/actions/runs/39980376092). Reported results included zero Bandit findings, zero Semgrep findings, zero detect-secrets files with findings, and no known vulnerabilities reported for the five installed runtime dependencies checked by pip-audit.
+
+These are results for the tested candidate commit, not a permanent guarantee for later commits. The project is still under review in a draft PR; this document does not authorize a merge or production deployment.
