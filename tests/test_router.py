@@ -90,7 +90,7 @@ class RouterTests(unittest.TestCase):
         self.assertNotIn("secret-value", message)
 
     def test_provider_error_detail_redacts_exact_api_key_if_echoed(self):
-        api_key = "sk_live_exact-secret-value"
+        api_key = "test_key_echo_marker_73921"
         class Response:
             status_code = 401
             text = "untrusted error body"
