@@ -20,7 +20,7 @@ For Agent Team Starter, the highest-value first step is **not** to replace the e
 - The upstream project describes itself as local-first and single-user. It explicitly advises against exposing the service directly to the public internet.
 - The project documents no SLA, variable latency, quota exhaustion/degradation, and changing free-tier availability.
 - Fusion fans a prompt out to multiple models and uses a judge model to synthesize an answer. This increases upstream requests, latency, and quota consumption and should not be the default for every agent stage.
-- The latest release observed during this assessment was v0.16.9. Pin and review a specific release rather than blindly pulling `:latest` for a repeatable setup.
+- The latest release observed during this assessment was v0.16.8. Pin and review a specific release rather than blindly pulling `:latest` for a repeatable setup.
 
 Sources:
 - https://github.com/tashfeenahmed/freellmapi
