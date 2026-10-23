@@ -1,0 +1,42 @@
+name: YAML syntax validation
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: yaml-syntax-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  yaml-syntax:
+    name: Parse workflow and Dependabot YAML
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Parse YAML files with Ruby's standard library
+        shell: bash
+        run: |
+          ruby -ryaml -e '
+            files = Dir.glob(".github/workflows/*.{yml,yaml}") + [".github/dependabot.yml"]
+            files = files.select { |path| File.file?(path) }.sort
+            abort "ERROR: No workflow or Dependabot YAML files found." if files.empty?
+
+            failed = false
+            files.each do |path|
+              begin
+                YAML.parse_file(path)
+                puts "PASS: #{path}"
+              rescue Psych::SyntaxError => error
+                warn "FAIL: #{path}: #{error.message}"
+                failed = true
+              end
+            end
+            exit(failed ? 1 : 0)
+          '
