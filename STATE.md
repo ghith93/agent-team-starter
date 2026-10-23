@@ -47,39 +47,18 @@ A free-first Python multi-agent workflow (planner → executor → reviewer) wit
 - Before risky changes, preserve a recovery point and document rollback.
 - Treat all automated scan findings as candidates requiring review; never silence broad patterns merely to make a workflow green.
 
-## Next actions (updated 2026-10-23 18:39 UTC)
-1. Confirm Gitleaks failure behavior with a synthetic, non-secret fixture; current history and working-tree scan passed, but a clean scan is not proof that all credentials are absent.
-2. Review repository settings in GitHub UI because the connected integration cannot access the branch-protection endpoint (HTTP 403); do not infer that Secret Scanning or Push Protection is enabled.
+## Next actions (updated 2026-10-23 18:53 UTC)
+1. Run a safe synthetic secret-detection regression that verifies only the intended test strings are excluded and that a non-exempt canary is still detected.
+2. Review repository security settings in GitHub UI because the connected integration cannot access the branch-protection endpoint (HTTP 403); do not infer that Secret Scanning, Push Protection, or branch protection is enabled.
 3. Identify the actual runtime/deployment target before designing external monitoring or backups.
-4. Keep PR #16 in draft and unmerged pending owner review; all current CI gates for the documented commit passed.
+4. Plan an independent backup destination and a restore drill; the in-repository recovery ref is not an independent backup.
+5. Keep PR #16 in draft and unmerged pending owner review.
 
-
-## Update after first repair-branch validation — 2026-10-23 18:35 UTC
-- Pull request opened as draft: https://github.com/ghith93/agent-team-starter/pull/16
-- YAML syntax validation passed: https://github.com/ghith93/agent-team-starter/actions/runs/40004421410
-- Offline regression checks passed: https://github.com/ghith93/agent-team-starter/actions/runs/40004421199
-- Tests and security scans workflow passed: https://github.com/ghith93/agent-team-starter/actions/runs/40004421478
-- The successful security workflow included Bandit, pip-audit, Semgrep, detect-secrets, and Gitleaks steps. This is evidence of workflow success for this commit only, not a guarantee that no secret exists anywhere or that repository-level push protection is enabled.
-- Created follow-up issues:
-  - https://github.com/ghith93/agent-team-starter/issues/17 — verify repository security settings and main-branch rules.
-  - https://github.com/ghith93/agent-team-starter/issues/18 — independent backup and restore drill.
-  - https://github.com/ghith93/agent-team-starter/issues/19 — runtime monitoring and mobile alerting.
-- The web research module already fails closed unless an explicitly configured trusted egress proxy is present; its docstring and README warn that the proxy must enforce destination restrictions. This is an existing mitigation, not a newly added fix in this PR.
-- No deployment target or health endpoint has been confirmed, so a truthful 24/7 monitor cannot yet be configured without guessing.
-- Current pull request remains a draft and has not been merged.
-
-
-## Validation update — 2026-10-23 18:37 UTC
-- Latest fully completed CI run for commit `066c0f1e2e1ca923a6cba53c237365384965519c`: YAML syntax passed, offline regression passed, promotion readiness gate passed, and security workflow passed. Evidence: https://github.com/ghith93/agent-team-starter/actions/runs/40004647942, https://github.com/ghith93/agent-team-starter/actions/runs/40004647928, https://github.com/ghith93/agent-team-starter/actions/runs/40004647905, https://github.com/ghith93/agent-team-starter/actions/runs/40004637176
-- Gitleaks job scanned full history and working tree and passed; Bandit, pip-audit, Semgrep, and detect-secrets steps passed in the same security workflow.
-- PR #16 is open, draft, unmerged, and currently reported mergeable by GitHub: https://github.com/ghith93/agent-team-starter/pull/16
-- Repository is private. Reading main branch protection returned HTTP 403 from the connected integration, so protection status must be verified in GitHub settings; no settings were changed.
-- Follow-up work is tracked in issues #17, #18, and #19.
-
-
-## Latest validation — 2026-10-23 18:39 UTC
-- On commit `263612f9fdfeeb100484d0a14898bd5c23b073c4`, YAML syntax passed: https://github.com/ghith93/agent-team-starter/actions/runs/40004823644
-- Offline regression checks passed: https://github.com/ghith93/agent-team-starter/actions/runs/40004823594
-- Promotion readiness gate passed: https://github.com/ghith93/agent-team-starter/actions/runs/40004823513
-- Tests and security scans passed: https://github.com/ghith93/agent-team-starter/actions/runs/40004823887. Its jobs show offline regression/evaluator tests, Gitleaks, and Python SAST/secrets/dependency audit all succeeded.
-- PR #16 remains open, draft, unmerged, and reported mergeable. No live inference, deployment, merge, or account-level security setting changes were performed.
+## Latest validation — 2026-10-23 18:50 UTC
+- Commit `e7b9d7cc48773bbd384ef12a0edcf408a4ca0a33` passed YAML syntax validation: https://github.com/ghith93/agent-team-starter/actions/runs/40006567343
+- Offline regression checks passed: https://github.com/ghith93/agent-team-starter/actions/runs/40006567235
+- Promotion readiness gate passed: https://github.com/ghith93/agent-team-starter/actions/runs/40006567254
+- Tests and security scans passed: https://github.com/ghith93/agent-team-starter/actions/runs/40006567240. The security workflow's detect-secrets gate passed after tightening the line exclusion; Bandit, pip-audit, Semgrep, and Gitleaks also succeeded.
+- An earlier commit, `73fc40a4dd7fb35bb21e18448e7493a5f38177e9`, failed only the detect-secrets findings gate; this was superseded by the passing `e7b9d7c` run. The older failed result remains in history and is not hidden.
+- CI is green for the validated commit only. This does not prove that all repository history is free of credentials or that GitHub-level push protection is enabled.
+- PR #16 remains draft and unmerged. No live inference, deployment, merge, or account-level security setting changes were performed.
