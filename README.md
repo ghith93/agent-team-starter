@@ -11,6 +11,7 @@ These are local/offline results only. They do not establish live-model quality, 
 - [Implementation plan: marketing and sales agent stack](docs/IMPLEMENTATION_PLAN_2026-10-23.md)
 - [Open-source integration radar](docs/OPEN_SOURCE_INTEGRATION_RADAR.md)
 - [Access boundaries and approval gates](docs/ACCESS_AND_AUTOMATION_BOUNDARIES.md)
+- [Meta Ads MCP read-only setup runbook](docs/META_ADS_READ_ONLY_SETUP.md)
 
 ## Intended integration direction
 
