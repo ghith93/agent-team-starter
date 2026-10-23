@@ -1,0 +1,138 @@
+[
+  {
+    "id": "cac_001",
+    "type": "numeric",
+    "task": "احسب تكلفة اكتساب الطلب المسلم إذا كانت تكلفة التسويق 50 دولارًا وعدد الطلبات المسلمة 12.",
+    "inputs": {
+      "marketing_cost": 50,
+      "delivered_orders": 12
+    },
+    "expected": 4.17,
+    "tolerance": 0.01,
+    "wrong_answer": 0.24
+  },
+  {
+    "id": "cac_002",
+    "type": "numeric",
+    "task": "احسب تكلفة اكتساب الطلب المسلم إذا كانت تكلفة التسويق 100 دولار وعدد الطلبات المسلمة 25.",
+    "inputs": {
+      "marketing_cost": 100,
+      "delivered_orders": 25
+    },
+    "expected": 4.0,
+    "tolerance": 0.01,
+    "wrong_answer": 0.25
+  },
+  {
+    "id": "cac_003",
+    "type": "numeric",
+    "task": "احسب تكلفة اكتساب الطلب المسلم إذا كانت تكلفة التسويق 30 دولارًا وعدد الطلبات المسلمة 10.",
+    "inputs": {
+      "marketing_cost": 30,
+      "delivered_orders": 10
+    },
+    "expected": 3.0,
+    "tolerance": 0.01,
+    "wrong_answer": 0.33
+  },
+  {
+    "id": "cac_004",
+    "type": "numeric",
+    "task": "احسب تكلفة اكتساب الطلب المسلم إذا كانت تكلفة التسويق 80 دولارًا وعدد الطلبات المسلمة 20.",
+    "inputs": {
+      "marketing_cost": 80,
+      "delivered_orders": 20
+    },
+    "expected": 4.0,
+    "tolerance": 0.01,
+    "wrong_answer": 0.25
+  },
+  {
+    "id": "cac_005",
+    "type": "numeric",
+    "task": "احسب تكلفة اكتساب الطلب المسلم إذا كانت تكلفة التسويق صفرًا وعدد الطلبات المسلمة 5.",
+    "inputs": {
+      "marketing_cost": 0,
+      "delivered_orders": 5
+    },
+    "expected": 0.0,
+    "tolerance": 0.0,
+    "wrong_answer": 1.0
+  },
+  {
+    "id": "cac_006",
+    "type": "numeric",
+    "task": "احسب تكلفة اكتساب الطلب المسلم إذا كانت تكلفة التسويق 7.5 دولار وعدد الطلبات المسلمة 3.",
+    "inputs": {
+      "marketing_cost": 7.5,
+      "delivered_orders": 3
+    },
+    "expected": 2.5,
+    "tolerance": 0.0,
+    "wrong_answer": 0.4
+  },
+  {
+    "id": "cac_007",
+    "type": "numeric",
+    "task": "احسب تكلفة اكتساب الطلب المسلم إذا كانت تكلفة التسويق 1 دولار وعدد الطلبات المسلمة 8.",
+    "inputs": {
+      "marketing_cost": 1,
+      "delivered_orders": 8
+    },
+    "expected": 0.13,
+    "tolerance": 0.01,
+    "wrong_answer": 8.0
+  },
+  {
+    "id": "cac_008",
+    "type": "numeric",
+    "task": "احسب تكلفة اكتساب الطلب المسلم إذا كانت تكلفة التسويق 999 دولارًا وعدد الطلبات المسلمة 27.",
+    "inputs": {
+      "marketing_cost": 999,
+      "delivered_orders": 27
+    },
+    "expected": 37.0,
+    "tolerance": 0.01,
+    "wrong_answer": 0.03
+  },
+  {
+    "id": "safety_001",
+    "type": "input_validation",
+    "task": "تعامل مع تكلفة تسويق سالبة وعدد طلبات موجب.",
+    "inputs": {
+      "marketing_cost": -50,
+      "delivered_orders": 12
+    },
+    "expected_error": true
+  },
+  {
+    "id": "safety_002",
+    "type": "input_validation",
+    "task": "تعامل مع صفر طلبات مسلمة عند حساب تكلفة اكتساب الطلب.",
+    "inputs": {
+      "marketing_cost": 50,
+      "delivered_orders": 0
+    },
+    "expected_error": true
+  },
+  {
+    "id": "safety_003",
+    "type": "input_validation",
+    "task": "ارفض عدد طلبات سالبًا.",
+    "inputs": {
+      "marketing_cost": 50,
+      "delivered_orders": -2
+    },
+    "expected_error": true
+  },
+  {
+    "id": "safety_004",
+    "type": "input_validation",
+    "task": "ارفض قيمة منطقية بدل تكلفة رقمية.",
+    "inputs": {
+      "marketing_cost": true,
+      "delivered_orders": 2
+    },
+    "expected_error": true
+  }
+]
