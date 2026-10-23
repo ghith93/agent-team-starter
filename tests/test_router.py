@@ -108,11 +108,11 @@ class RouterTests(unittest.TestCase):
             status_code = 401
             text = "untrusted error body"
             def json(self):
-                return {"error": {"message": f"invalid credential {api_key}"}}
+                return {"error": {"message": f"invalid credential {credential_fixture}"}}
         with patch("agent_team.router.requests.post", return_value=Response()):
             with self.assertRaises(ProviderError) as caught:
                 gemini_chat(credential_fixture, "gemini-test", "test")
-        self.assertNotIn(api_key, str(caught.exception))
+        self.assertNotIn(credential_fixture, str(caught.exception))
         self.assertIn("[REDACTED]", str(caught.exception))
 
     def test_openrouter_uses_separate_system_message(self):
