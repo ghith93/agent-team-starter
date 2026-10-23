@@ -31,10 +31,6 @@ Use environment variables or Colab Secrets. Never hard-code real credentials.
 ```bash
 export GEMINI_API_KEY="..."
 export OPENROUTER_API_KEY="..."
-# Optional local FreeLLMAPI gateway (only enabled when its unified key is set):
-export FREELLMAPI_API_KEY="..."
-export FREELLMAPI_BASE_URL="http://127.0.0.1:3001/v1"
-export FREELLMAPI_MODEL="auto"
 # Optional: GEMINI_MODEL=...; OPENROUTER_FREE_MODELS=openrouter/free,provider/model:free
 ```
 
@@ -49,8 +45,6 @@ python -m agent_team.cli --task-file task.txt --telemetry logs/events.jsonl
 ```
 
 No keys means no provider requests. OpenRouter accepts only `openrouter/free` or model IDs ending in `:free`. A free label is not a guarantee of uptime, quota, or absence of ancillary costs. `--check-config` does not test credentials or billing.
-
-FreeLLMAPI is an optional fallback. Run it locally and keep it bound to `127.0.0.1`; do not expose its single-user API to the public internet. Plain HTTP is accepted only for loopback URLs; remote FreeLLMAPI endpoints must use HTTPS. See [the integration assessment](docs/FREELLMAPI_INTEGRATION_ASSESSMENT.md) for adoption limits, privacy, and evaluation requirements.
 
 ## Result contract
 Successful `run_team()` results include `ok`, `run_id`, `task`, `final`, `plan`, `draft`, `review`, `trace`, `total_duration_ms`, and a limitation note. `final` is the draft, not a merged rewrite by the reviewer. Review is model-generated and is not proof of correctness. On a stage failure, `TeamExecutionError` exposes the failed stage, successful prior outputs, and trace.
