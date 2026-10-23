@@ -1,0 +1,130 @@
+{
+  "suite": "agent_team_starter_offline_benchmark",
+  "suite_version": 1,
+  "generated_at_utc": "2026-10-23T06:34:33.143530+00:00",
+  "execution_mode": "offline_deterministic_only",
+  "network_calls": 0,
+  "provider_api_calls": 0,
+  "estimated_cost_usd": 0,
+  "task_count": 12,
+  "passed_tasks": 4,
+  "failed_tasks": 0,
+  "not_run_tasks": 8,
+  "release_decision": "OFFLINE_CHECKS_PASS_LIVE_EVALUATION_REQUIRED",
+  "limitations": [
+    "This report measures only the named deterministic local tests.",
+    "No general model accuracy, source quality, human intervention, live latency, or live cost is measured.",
+    "DNS rebinding resistance depends on an independently verified egress proxy; this suite does not test a real proxy policy.",
+    "A passed local test does not establish overall product security or readiness for public deployment."
+  ],
+  "tasks": [
+    {
+      "task_id": "TASK-04",
+      "status": "passed",
+      "checks_passed": 2,
+      "checks_total": 2,
+      "local_test_duration_ms": 0.333,
+      "evidence": [
+        {
+          "test": "tests.test_web_research.WebResearchTests.test_rejects_localhost",
+          "status": "passed"
+        },
+        {
+          "test": "tests.test_web_research.WebResearchTests.test_rejects_private_ip_literal",
+          "status": "passed"
+        }
+      ],
+      "scope_note": "Only mapped offline regression checks; not a full task-quality score."
+    },
+    {
+      "task_id": "TASK-05",
+      "status": "passed",
+      "checks_passed": 2,
+      "checks_total": 2,
+      "local_test_duration_ms": 0.911,
+      "evidence": [
+        {
+          "test": "tests.test_web_research.WebResearchTests.test_rejects_dns_name_resolving_to_private_ip",
+          "status": "passed"
+        },
+        {
+          "test": "tests.test_web_research.WebResearchTests.test_rejects_mixed_public_and_private_dns_answers",
+          "status": "passed"
+        }
+      ],
+      "scope_note": "Only mapped offline regression checks; not a full task-quality score."
+    },
+    {
+      "task_id": "TASK-09",
+      "status": "passed",
+      "checks_passed": 2,
+      "checks_total": 2,
+      "local_test_duration_ms": 0.114,
+      "evidence": [
+        {
+          "test": "tests.test_router.RouterTests.test_falls_back_after_gemini_transient_error",
+          "status": "passed"
+        },
+        {
+          "test": "tests.test_router.RouterTests.test_no_keys_fails_closed",
+          "status": "passed"
+        }
+      ],
+      "scope_note": "Only mapped offline regression checks; not a full task-quality score."
+    },
+    {
+      "task_id": "TASK-10",
+      "status": "passed",
+      "checks_passed": 1,
+      "checks_total": 1,
+      "local_test_duration_ms": 0.737,
+      "evidence": [
+        {
+          "test": "tests.test_telemetry.TelemetryTests.test_opt_in_log_contains_metadata_but_not_prompts_or_outputs",
+          "status": "passed"
+        }
+      ],
+      "scope_note": "Only mapped offline regression checks; not a full task-quality score."
+    },
+    {
+      "task_id": "TASK-01",
+      "status": "not_run",
+      "reason": "Requires live-model or human evaluation; deliberately not attempted."
+    },
+    {
+      "task_id": "TASK-02",
+      "status": "not_run",
+      "reason": "Requires live-model or human evaluation; deliberately not attempted."
+    },
+    {
+      "task_id": "TASK-03",
+      "status": "not_run",
+      "reason": "Requires live-model or human evaluation; deliberately not attempted."
+    },
+    {
+      "task_id": "TASK-06",
+      "status": "not_run",
+      "reason": "Requires live-model or human evaluation; deliberately not attempted."
+    },
+    {
+      "task_id": "TASK-07",
+      "status": "not_run",
+      "reason": "Requires live-model or human evaluation; deliberately not attempted."
+    },
+    {
+      "task_id": "TASK-08",
+      "status": "not_run",
+      "reason": "Requires live-model or human evaluation; deliberately not attempted."
+    },
+    {
+      "task_id": "TASK-11",
+      "status": "not_run",
+      "reason": "Requires live-model or human evaluation; deliberately not attempted."
+    },
+    {
+      "task_id": "TASK-12",
+      "status": "not_run",
+      "reason": "Requires live-model or human evaluation; deliberately not attempted."
+    }
+  ]
+}

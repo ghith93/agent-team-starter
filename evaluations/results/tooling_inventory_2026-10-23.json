@@ -1,0 +1,42 @@
+{
+  "commands": {
+    "ast-grep": false,
+    "bandit": false,
+    "deepeval": false,
+    "detect-secrets": false,
+    "frida": false,
+    "ghidra": false,
+    "git": true,
+    "gitleaks": false,
+    "mcp-inspector": false,
+    "mcp-scan": false,
+    "mitmproxy": false,
+    "pip-audit": false,
+    "promptfoo": false,
+    "pytest": true,
+    "radare2": false,
+    "ruff": false,
+    "semgrep": false
+  },
+  "execution_mode": "local_discovery_only",
+  "generated_at_utc": "2026-10-23T06:02:43.505082+00:00",
+  "installations_performed": 0,
+  "limitations": [
+    "Command discovery does not establish that a tool is correctly configured or safe.",
+    "A missing command/module may still be available in another environment.",
+    "No vulnerability database or remote repository was queried."
+  ],
+  "network_calls": 0,
+  "python_modules": {
+    "bandit": false,
+    "deepeval": false,
+    "hypothesis": false,
+    "langgraph": false,
+    "pip_audit": false,
+    "pytest": true,
+    "requests": true,
+    "ruff": false
+  },
+  "python_version": "3.13.5",
+  "secret_values_read": false
+}
