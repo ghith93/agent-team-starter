@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import patch
-from agent_team.router import FreeFirstRouter, ProviderError, classify_http_error, openrouter_chat, gemini_chat, freellmapi_chat
+from agent_team.router import FreeFirstRouter, ProviderError, classify_http_error, openrouter_chat, gemini_chat
 from agent_team.team import run_team
 from agent_team.router import ModelResult
 
@@ -21,46 +21,6 @@ class RouterTests(unittest.TestCase):
     def test_accepts_openrouter_free_router(self):
         router = FreeFirstRouter(free_models=["openrouter/free"], gemini_key="", openrouter_key="")
         self.assertEqual(router.free_models, ["openrouter/free"])
-
-    def test_freellmapi_rejects_plain_http_remote_endpoint(self):
-        with self.assertRaises(ProviderError):
-            freellmapi_chat("key", "auto", "test", base_url="http://example.com/v1")
-
-    def test_freellmapi_requires_v1_base_url(self):
-        with self.assertRaises(ProviderError):
-            freellmapi_chat("key", "auto", "test", base_url="http://127.0.0.1:3001")
-
-    def test_freellmapi_uses_openai_payload_and_separate_system_message(self):
-        class Response:
-            status_code = 200
-            def json(self):
-                return {"choices": [{"message": {"content": "gateway response"}}]}
-        with patch("agent_team.router.requests.post", return_value=Response()) as post:
-            result = freellmapi_chat(
-                "local-key", "auto", "untrusted task",
-                base_url="http://127.0.0.1:3001/v1", system_prompt="trusted role"
-            )
-        self.assertEqual(result, "gateway response")
-        self.assertEqual(post.call_args.args[0], "http://127.0.0.1:3001/v1/chat/completions")
-        payload = post.call_args.kwargs["json"]
-        self.assertEqual(payload["messages"][0], {"role": "system", "content": "trusted role"})
-        self.assertEqual(payload["messages"][1], {"role": "user", "content": "untrusted task"})
-        self.assertEqual(post.call_args.kwargs["headers"]["Authorization"], "Bearer local-key")
-
-    def test_freellmapi_is_optional_and_used_as_fallback(self):
-        def bad_gemini(*args, **kwargs):
-            raise ProviderError("provider_unavailable", 503)
-        def gateway(key, model, prompt, base_url, *, system_prompt=""):
-            self.assertEqual(base_url, "http://127.0.0.1:3001/v1")
-            self.assertEqual(system_prompt, "role")
-            return "gateway fallback"
-        router = FreeFirstRouter(
-            gemini_key="g", openrouter_key="", freellmapi_key="f",
-            gemini_call=bad_gemini, freellmapi_call=gateway,
-        )
-        result = router.ask("test", system_prompt="role")
-        self.assertEqual(result.provider, "FreeLLMAPI")
-        self.assertEqual(result.text, "gateway fallback")
 
     def test_falls_back_after_gemini_transient_error(self):
         def bad_gemini(*args):
@@ -244,10 +204,6 @@ class RouterTests(unittest.TestCase):
 
         with patch("agent_team.router.requests.post", return_value=GeminiResponse()) as post:
             gemini_chat("key", "gemini-test", "task")
-            self.assertIs(post.call_args.kwargs["allow_redirects"], False)
-
-        with patch("agent_team.router.requests.post", return_value=OpenRouterResponse()) as post:
-            freellmapi_chat("key", "auto", "task")
             self.assertIs(post.call_args.kwargs["allow_redirects"], False)
 
 
