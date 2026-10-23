@@ -19,7 +19,7 @@ The workflow uploads `offline-test-reports` and `python-security-reports` artifa
 ## Important operating notes
 
 1. **This file does not mean the scanners have already run.** They run only after the repository is pushed to GitHub and a workflow run completes. This local environment could not resolve external hosts during the previous install attempt.
-2. Scanner packages are installed from the package index at run time, so the resolved versions can change. The run records installed versions; for a high-assurance pipeline, pin scanner versions and action references to reviewed commit SHAs after validating the chosen versions.
+2. Scanner packages are installed from the package index at run time, so the resolved scanner versions can change. The workflow records installed versions in `scanner-versions.txt`; pin scanner package versions as a separate hardening step when a reviewed, compatible set has been selected. Third-party GitHub Actions are pinned to reviewed full commit SHAs.
 3. A scanner finding or scanner execution error fails the `python-security` job. Review reports before suppressing any finding; do not add broad ignore rules just to make CI green.
 4. `pip-audit` covers only dependencies represented by `requirements.txt` (and their resolved dependency graph), not arbitrary packages already present in a developer's global environment.
 5. Gitleaks uses `gitleaks/gitleaks-action@v3` and the repository-scoped `GITHUB_TOKEN`; PR comments are disabled and workflow permissions are read-only. For repositories owned by a GitHub organization, configure the encrypted `GITLEAKS_LICENSE` secret if required by the action. Personal-account repositories generally do not require that license. Do not add write permissions or expose secrets to untrusted pull-request code. The workflows pin third-party actions to full commit SHAs checked against upstream GitHub tag refs during review. When updating an action, verify the new tag/commit and update the workflow-contract tests in the same change.
@@ -34,10 +34,10 @@ The workflow uploads `offline-test-reports` and `python-security-reports` artifa
 
 ## Verified restoration candidate run
 
-For the restored candidate currently proposed in PR #4, GitHub Actions has completed successfully:
+For the restored candidate at commit `d10db245b89bdacfd522355949372a42ea8f3bc1` proposed in PR #4, both current GitHub Actions workflows completed successfully:
 
-- [Tests and security scans run](https://github.com/ghith93/agent-team-starter/actions/runs/39980384727): offline regression/evaluator job, Gitleaks secret scan, and Python SAST/secrets/dependency-audit job all passed.
-- [Offline regression checks run](https://github.com/ghith93/agent-team-starter/actions/runs/39980384739): passed.
-- The earlier successful security run's reports are available from [run 39980376092](https://github.com/ghith93/agent-team-starter/actions/runs/39980376092). Reported results included zero Bandit findings, zero Semgrep findings, zero detect-secrets files with findings, and no known vulnerabilities reported for the five installed runtime dependencies checked by pip-audit.
+- [Tests and security scans run](https://github.com/ghith93/agent-team-starter/actions/runs/39982006908): offline regression/evaluator job, Gitleaks secret scan, and Python SAST/secrets/dependency-audit job all passed.
+- [Offline regression checks run](https://github.com/ghith93/agent-team-starter/actions/runs/39982006935): passed.
+- An earlier successful security run's reports remain available from [run 39980376092](https://github.com/ghith93/agent-team-starter/actions/runs/39980376092). Its reported results included zero Bandit findings, zero Semgrep findings, zero detect-secrets files with findings, and no known vulnerabilities reported for the five installed runtime dependencies checked by pip-audit.
 
-These are results for the tested candidate commit, not a permanent guarantee for later commits. The project is still under review in a draft PR; this document does not authorize a merge or production deployment.
+These are results for the specific tested candidate commit, not a permanent guarantee for later commits. The project is still under review in a draft PR; this document does not authorize a merge or production deployment.
