@@ -69,6 +69,7 @@ def openrouter_chat(api_key: str, model: str, prompt: str, timeout: int = 45, *,
             headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
             json={"model": model, "messages": ([{"role": "system", "content": system_prompt}] if system_prompt else []) + [{"role": "user", "content": prompt}], "max_tokens": 1200},
             timeout=timeout,
+            allow_redirects=False,
         )
     except requests.RequestException as exc:
         raise ProviderError(f"Network error: {type(exc).__name__}") from exc
@@ -124,6 +125,7 @@ def freellmapi_chat(
             headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
             json={"model": model, "messages": messages, "max_tokens": 1200},
             timeout=timeout,
+            allow_redirects=False,
         )
     except requests.RequestException as exc:
         raise ProviderError(f"Network error: {type(exc).__name__}") from exc
@@ -151,6 +153,7 @@ def gemini_chat(api_key: str, model: str, prompt: str, timeout: int = 45, *, sys
             headers={"x-goog-api-key": api_key, "Content-Type": "application/json"},
             json=({"systemInstruction": {"parts": [{"text": system_prompt}]}} if system_prompt else {}) | {"contents": [{"parts": [{"text": prompt}]}]},
             timeout=timeout,
+            allow_redirects=False,
         )
     except requests.RequestException as exc:
         raise ProviderError(f"Network error: {type(exc).__name__}") from exc
