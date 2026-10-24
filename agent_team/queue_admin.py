@@ -59,6 +59,10 @@ def _copy_database(source: Path, destination: Path) -> dict:
     if destination.exists():
         raise ValueError("Destination already exists; refusing to overwrite it.")
     destination.parent.mkdir(parents=True, exist_ok=True)
+    # Reserve the destination atomically so concurrent invocations cannot
+    # overwrite a file created after the existence check (TOCTOU).
+    reservation_fd = os.open(destination, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    os.close(reservation_fd)
     try:
         with closing(_open_readonly(source)) as src:
             with closing(sqlite3.connect(str(destination), timeout=5.0)) as dst:
