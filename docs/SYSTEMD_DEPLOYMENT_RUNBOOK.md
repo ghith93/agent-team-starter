@@ -80,7 +80,6 @@ Periodically restore a backup to a new path and run `status` against it. Do not 
 Install the health script and systemd service/timer alongside the worker. The health check is read-only and emits aggregate counts and alert names only.
 
 ```bash
-sudo install -o root -g root -m 0755 deploy/systemd/check-queue-health.sh /opt/agent-team-starter/deploy/systemd/
 sudo install -o root -g root -m 0644 deploy/systemd/agent-team-queue-health.service /etc/systemd/system/
 sudo install -o root -g root -m 0644 deploy/systemd/agent-team-queue-health.timer /etc/systemd/system/
 sudo install -o root -g root -m 0644 /dev/null /etc/agent-team/health.env

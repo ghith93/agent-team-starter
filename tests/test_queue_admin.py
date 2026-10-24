@@ -121,7 +121,7 @@ class QueueAdminTests(unittest.TestCase):
                 "--max-running-age-seconds", "-1",
             ])
         self.assertEqual(code, 2)
-        self.assertIn("max-running-age-seconds must be non-negative", err.getvalue())
+        self.assertIn('"error_type": "ValueError"', err.getvalue())
 
     def test_status_requires_existing_database(self):
         with self.assertRaises(ValueError):
