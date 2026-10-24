@@ -6,6 +6,7 @@ Callers must explicitly create a store and decide what task/result data to persi
 from __future__ import annotations
 
 import json
+from contextlib import closing
 import re
 import sqlite3
 import time
@@ -14,7 +15,6 @@ from pathlib import Path
 from typing import Any
 
 
-_STATUSES = {"queued", "running", "succeeded", "failed"}
 _ERROR_TYPE = re.compile(r"^[A-Za-z_][A-Za-z0-9_.]{0,79}$")
 _MAX_ATTEMPTS = 10
 _MAX_LEASE_SECONDS = 86400
@@ -40,7 +40,7 @@ class WorkflowStore:
         if str(database_path) == ":memory:":
             raise ValueError("Use a file-backed database so state survives reconnects.")
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             connection.execute("""
                 CREATE TABLE IF NOT EXISTS jobs (
                     job_id TEXT PRIMARY KEY,
