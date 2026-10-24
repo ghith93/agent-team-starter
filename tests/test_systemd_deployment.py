@@ -51,6 +51,57 @@ class SystemdDeploymentTemplateTests(unittest.TestCase):
         self.assertIn("Apply retention only after a new backup has passed its integrity check", script)
         self.assertIn("RETENTION_DAYS", script)
 
+    def test_restore_test_timer_is_daily_and_uses_isolated_temporary_restore(self):
+        service = (DEPLOY / "agent-team-queue-restore-test.service").read_text(encoding="utf-8")
+        timer = (DEPLOY / "agent-team-queue-restore-test.timer").read_text(encoding="utf-8")
+        script = (DEPLOY / "test-queue-restore.sh").read_text(encoding="utf-8")
+        self.assertIn("Type=oneshot", service)
+        self.assertIn("OnCalendar=daily", timer)
+        self.assertIn("Persistent=true", timer)
+        self.assertIn("mktemp -d", script)
+        self.assertIn("queue_admin restore", script)
+        self.assertIn("queue_admin status", script)
+        self.assertIn("trap", script)
+        self.assertIn("QUEUE_DB", script)
+
+    def test_restore_test_script_restores_latest_backup_and_cleans_temp_files(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            database = root / "queue.sqlite3"
+            WorkflowStore(database)
+            backup_dir = root / "backups"
+            backup_dir.mkdir()
+            _copy_database(database, backup_dir / "queue-test.sqlite3")
+            env = os.environ.copy()
+            env.update({
+                "APP_DIR": str(ROOT), "PYTHON": sys.executable, "PYTHONPATH": str(ROOT),
+                "QUEUE_DB": str(database), "BACKUP_DIR": str(backup_dir),
+                "RESTORE_TEST_DIR": str(root / "restore-test"),
+            })
+            result = subprocess.run(["bash", str(DEPLOY / "test-queue-restore.sh")],
+                cwd=ROOT, env=env, text=True, capture_output=True, check=False, timeout=15)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("restore test passed", result.stdout)
+            self.assertEqual(list((root / "restore-test").glob("*")), [])
+
+    def test_restore_test_script_fails_when_no_backup_exists(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            database = root / "queue.sqlite3"
+            WorkflowStore(database)
+            backup_dir = root / "backups"
+            backup_dir.mkdir()
+            env = os.environ.copy()
+            env.update({
+                "APP_DIR": str(ROOT), "PYTHON": sys.executable, "PYTHONPATH": str(ROOT),
+                "QUEUE_DB": str(database), "BACKUP_DIR": str(backup_dir),
+                "RESTORE_TEST_DIR": str(root / "restore-test"),
+            })
+            result = subprocess.run(["bash", str(DEPLOY / "test-queue-restore.sh")],
+                cwd=ROOT, env=env, text=True, capture_output=True, check=False, timeout=15)
+            self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+            self.assertIn("no queue backup was found", result.stderr)
+
     def test_health_monitor_is_scheduled_and_checks_queue_and_backup_integrity(self):
         service = (DEPLOY / "agent-team-queue-health.service").read_text(encoding="utf-8")
         timer = (DEPLOY / "agent-team-queue-health.timer").read_text(encoding="utf-8")
