@@ -25,6 +25,7 @@ class SystemdDeploymentTemplateTests(unittest.TestCase):
             "ProtectHome=true",
             "StateDirectory=agent-team",
             "EnvironmentFile=/etc/agent-team/worker.env",
+            "RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6",
         ):
             with self.subTest(directive=required):
                 self.assertIn(required, unit)
