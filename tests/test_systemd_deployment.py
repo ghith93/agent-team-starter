@@ -81,7 +81,7 @@ class SystemdDeploymentTemplateTests(unittest.TestCase):
             result = subprocess.run(["bash", str(DEPLOY / "test-queue-restore.sh")],
                 cwd=ROOT, env=env, text=True, capture_output=True, check=False, timeout=15)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-            self.assertIn("restore test passed", result.stdout)
+            self.assertIn("Restore test passed", result.stdout)
             self.assertEqual(list((root / "restore-test").glob("*")), [])
 
     def test_restore_test_script_fails_when_no_backup_exists(self):
