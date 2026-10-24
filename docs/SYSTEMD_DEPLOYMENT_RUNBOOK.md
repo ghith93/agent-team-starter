@@ -73,3 +73,22 @@ Periodically restore a backup to a new path and run `status` against it. Do not 
 - A worker lease cannot guarantee exactly-once provider calls after a crash.
 - The backup timer provides local backups, not off-host disaster recovery. Periodically copy encrypted backups to a separate trusted location.
 - Do not add a GitHub Actions workflow that starts an infinite worker on a hosted runner; hosted workflow jobs are not a persistent service.
+
+
+## 5. Enable five-minute queue health monitoring
+
+Install the health script and systemd service/timer alongside the worker. The health check is read-only and emits aggregate counts and alert names only.
+
+```bash
+sudo install -o root -g root -m 0755 deploy/systemd/check-queue-health.sh /opt/agent-team-starter/deploy/systemd/
+sudo install -o root -g root -m 0644 deploy/systemd/agent-team-queue-health.service /etc/systemd/system/
+sudo install -o root -g root -m 0644 deploy/systemd/agent-team-queue-health.timer /etc/systemd/system/
+sudo install -o root -g root -m 0644 /dev/null /etc/agent-team/health.env
+sudoedit /etc/agent-team/health.env
+sudo systemctl daemon-reload
+sudo systemctl enable --now agent-team-queue-health.timer
+sudo systemctl start agent-team-queue-health.service
+sudo journalctl -u agent-team-queue-health.service -n 50 --no-pager
+```
+
+Optional settings in the root-managed health environment file include `MAX_QUEUED_AGE_SECONDS=900`, `MAX_RUNNING_AGE_SECONDS=1800`, and `FAIL_ON_FAILED_JOBS=true`. The defaults flag expired leases, queued jobs older than 15 minutes, running jobs older than 30 minutes, and terminal failed jobs. A health check failure is visible in the system journal; it does not by itself send a remote alert. Add an external monitoring/notification route if operators need paging or email.

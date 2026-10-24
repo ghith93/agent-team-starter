@@ -96,6 +96,33 @@ class QueueAdminTests(unittest.TestCase):
         self.assertIn("failed_jobs_present", payload["alerts"])
         self.assertIn("expired_leases_present", payload["alerts"])
 
+    def test_status_can_alert_on_running_job_age(self):
+        self.store.enqueue("long-running task", now=100)
+        self.store.claim_next(now=101, lease_seconds=1000)
+        import io
+        from contextlib import redirect_stdout
+        out = io.StringIO()
+        with redirect_stdout(out):
+            code = main([
+                "status", "--database", str(self.database),
+                "--max-running-age-seconds", "0",
+            ])
+        self.assertEqual(code, 1)
+        payload = json.loads(out.getvalue())
+        self.assertIn("running_job_too_old", payload["alerts"])
+
+    def test_status_rejects_negative_running_age_threshold(self):
+        import io
+        from contextlib import redirect_stderr
+        err = io.StringIO()
+        with redirect_stderr(err):
+            code = main([
+                "status", "--database", str(self.database),
+                "--max-running-age-seconds", "-1",
+            ])
+        self.assertEqual(code, 2)
+        self.assertIn("max-running-age-seconds must be non-negative", err.getvalue())
+
     def test_status_requires_existing_database(self):
         with self.assertRaises(ValueError):
             queue_status(self.root / "missing.sqlite3")

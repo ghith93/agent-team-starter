@@ -54,3 +54,10 @@ Review the counts and integrity result before treating a backup as usable. A bac
 ## Monitoring and scheduling
 
 Run the `status` command from a host scheduler or monitoring agent to collect health/counts, and alert on failed jobs, old queued jobs, expired leases, or a failed integrity check. Configure this outside the Python project. The repository does not currently install a scheduler, alert delivery integration, remote backup destination, or 24/7 host supervisor.
+
+
+## Automated health checks
+
+The systemd templates can run a local health check every five minutes. It emits only aggregate queue status and threshold names, not task text or results. The default thresholds are 15 minutes for queued tasks and 30 minutes for running tasks; expired leases and terminal failures are reported as unhealthy by default. Configure thresholds through a root-managed `/etc/agent-team/health.env` file, then install and enable the health service and timer as described in the systemd runbook.
+
+A non-zero health-check exit is recorded in the system journal. This is local monitoring, not an external notification: route service failures to a real alerting destination separately if remote notification is required.

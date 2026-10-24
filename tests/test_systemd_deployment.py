@@ -43,6 +43,18 @@ class SystemdDeploymentTemplateTests(unittest.TestCase):
         self.assertIn("Apply retention only after a new backup has passed its integrity check", script)
         self.assertIn("RETENTION_DAYS", script)
 
+    def test_health_monitor_is_scheduled_and_uses_thresholds(self):
+        service = (DEPLOY / "agent-team-queue-health.service").read_text(encoding="utf-8")
+        timer = (DEPLOY / "agent-team-queue-health.timer").read_text(encoding="utf-8")
+        script = (DEPLOY / "check-queue-health.sh").read_text(encoding="utf-8")
+        self.assertIn("Type=oneshot", service)
+        self.assertIn("OnCalendar=*-*-* *:0/5:00", timer)
+        self.assertIn("Persistent=true", timer)
+        self.assertIn("--fail-on-expired-leases", script)
+        self.assertIn("--max-queued-age-seconds", script)
+        self.assertIn("--max-running-age-seconds", script)
+        self.assertIn("flock -n 9", script)
+
     def test_worker_does_not_enable_unsafe_unbounded_privileges(self):
         unit = (DEPLOY / "agent-team-worker.service").read_text(encoding="utf-8")
         self.assertIn("CapabilityBoundingSet=", unit)

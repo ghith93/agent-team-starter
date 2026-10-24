@@ -101,6 +101,8 @@ def build_parser() -> argparse.ArgumentParser:
                         help="Return exit code 1 when any job is terminally failed")
     status.add_argument("--max-queued-age-seconds", type=float,
                         help="Return exit code 1 when the oldest queued job exceeds this age")
+    status.add_argument("--max-running-age-seconds", type=float,
+                        help="Return exit code 1 when the oldest running job exceeds this age")
     backup = commands.add_parser("backup", help="Create a consistent SQLite backup without overwriting files")
     backup.add_argument("--database", type=Path, required=True)
     backup.add_argument("--destination", type=Path, required=True)
@@ -116,6 +118,8 @@ def main(argv=None) -> int:
         if args.command == "status":
             if args.max_queued_age_seconds is not None and args.max_queued_age_seconds < 0:
                 raise ValueError("max-queued-age-seconds must be non-negative.")
+            if args.max_running_age_seconds is not None and args.max_running_age_seconds < 0:
+                raise ValueError("max-running-age-seconds must be non-negative.")
             result = queue_status(args.database)
             alerts = []
             if not result["healthy"]:
@@ -128,6 +132,10 @@ def main(argv=None) -> int:
             if (args.max_queued_age_seconds is not None and oldest_age is not None
                     and oldest_age > args.max_queued_age_seconds):
                 alerts.append("queued_job_too_old")
+            running_age = result["oldest_running_age_seconds"]
+            if (args.max_running_age_seconds is not None and running_age is not None
+                    and running_age > args.max_running_age_seconds):
+                alerts.append("running_job_too_old")
             result["alerts"] = alerts
             print(json.dumps(result, ensure_ascii=False, indent=2))
             return 1 if alerts else 0
