@@ -3,6 +3,8 @@ Description=Agent Team durable queue worker
 Documentation=https://github.com/ghith93/agent-team-starter
 After=network-online.target
 Wants=network-online.target
+StartLimitIntervalSec=5min
+StartLimitBurst=5
 
 [Service]
 Type=simple
@@ -13,7 +15,11 @@ EnvironmentFile=/etc/agent-team/worker.env
 Environment=PYTHONUNBUFFERED=1
 ExecStart=/opt/agent-team-starter/.venv/bin/python -m agent_team.cli --queue-db /var/lib/agent-team/queue.sqlite3 --worker --poll-interval-seconds 5 --lease-seconds 300
 Restart=on-failure
-RestartSec=5s
+RestartSec=10s
+LimitNOFILE=4096
+MemoryMax=1G
+CPUQuota=100%
+TasksMax=64
 TimeoutStopSec=30s
 UMask=0077
 StateDirectory=agent-team
