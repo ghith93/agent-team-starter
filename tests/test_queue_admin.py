@@ -79,7 +79,7 @@ class QueueAdminTests(unittest.TestCase):
 
     def test_status_can_fail_for_expired_leases_and_terminal_failures(self):
         self.store.enqueue("will fail", now=100, max_attempts=1)
-        claimed = self.store.claim_next(now=101, lease_seconds=1)
+        claimed = self.store.claim_next(now=101, lease_seconds=10)
         self.store.fail(claimed["job_id"], "PermanentError", claim_token=claimed["claim_token"], retryable=False, now=102)
         self.store.enqueue("lease expires", now=103)
         self.store.claim_next(now=104, lease_seconds=1)
