@@ -16,7 +16,7 @@ class WorkflowStoreTests(unittest.TestCase):
         self.tempdir.cleanup()
 
     def test_migrates_existing_database_without_claim_token_column(self):
-        legacy_path = self.database
+        legacy_path = Path(self.tempdir.name) / "legacy.sqlite3"
         with sqlite3.connect(legacy_path) as connection:
             connection.execute("""
                 CREATE TABLE jobs (
