@@ -106,11 +106,11 @@ class SystemdDeploymentTemplateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             check = root / "check.sh"
-            check.write_text('#!/usr/bin/env bash\\necho "private task text must not be forwarded"\\nexit 1\\n', encoding="utf-8")
+            check.write_text('#!/usr/bin/env bash\necho "private task text must not be forwarded"\nexit 1\n', encoding="utf-8")
             curl = root / "curl"
             capture = root / "curl-args.txt"
             curl.write_text(
-                '#!/usr/bin/env bash\\nprintf "%s\\n" "$@" > "$CURL_CAPTURE"\\nexit 0\\n',
+                '#!/usr/bin/env bash\nprintf "%s\n" "$@" > "$CURL_CAPTURE"\nexit 0\n',
                 encoding="utf-8",
             )
             check.chmod(0o700)
@@ -136,10 +136,10 @@ class SystemdDeploymentTemplateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             check = root / "check.sh"
-            check.write_text('#!/usr/bin/env bash\\nexit 0\\n', encoding="utf-8")
+            check.write_text('#!/usr/bin/env bash\nexit 0\n', encoding="utf-8")
             curl = root / "curl"
             capture = root / "curl-called"
-            curl.write_text('#!/usr/bin/env bash\\ntouch "$CURL_CAPTURE"\\n', encoding="utf-8")
+            curl.write_text('#!/usr/bin/env bash\ntouch "$CURL_CAPTURE"\n', encoding="utf-8")
             check.chmod(0o700)
             curl.chmod(0o700)
             env = os.environ.copy()
@@ -153,7 +153,7 @@ class SystemdDeploymentTemplateTests(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertFalse(capture.exists())
-            check.write_text('#!/usr/bin/env bash\\nexit 1\\n', encoding="utf-8")
+            check.write_text('#!/usr/bin/env bash\nexit 1\n', encoding="utf-8")
             result = subprocess.run(
                 ["bash", str(DEPLOY / "run-queue-health-with-alert.sh")],
                 cwd=ROOT, env=env, text=True, capture_output=True, check=False, timeout=10,
