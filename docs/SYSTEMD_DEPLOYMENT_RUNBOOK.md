@@ -38,7 +38,7 @@ sudo systemctl status agent-team-worker.service --no-pager
 sudo journalctl -u agent-team-worker.service -n 100 --no-pager
 ```
 
-The unit restarts on process failure and applies systemd hardening. It expects the repository and virtual environment at the paths above. Review and adapt paths, resource limits, firewall rules, provider terms, and operational ownership for the host. The worker is a single-host service; do not point multiple hosts at a shared network-filesystem SQLite database.
+The unit restarts on process failure and applies systemd hardening. It restricts socket address families to Unix sockets and IPv4/IPv6, but this is not destination-level egress filtering. It expects the repository and virtual environment at the paths above. Review and adapt paths, resource limits, firewall rules, provider terms, and operational ownership for the host. The worker is a single-host service; do not point multiple hosts at a shared network-filesystem SQLite database.
 
 ## 3. Enable daily verified backups
 
