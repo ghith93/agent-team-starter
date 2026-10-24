@@ -81,6 +81,23 @@ class QueueCliTests(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertEqual(WorkflowStore(self.database).get(job["job_id"])["status"], "failed")
 
+    def test_worker_processes_a_job_and_exits_at_limit(self):
+        store = WorkflowStore(self.database)
+        job = store.enqueue("worker task")
+        result = {
+            "ok": True, "run_id": "worker-run", "final": "output",
+            "trace": [{"provider": "Gemini"}] * 3, "total_duration_ms": 3.0,
+        }
+        out = io.StringIO()
+        with patch("agent_team.cli.run_team", return_value=result) as run, contextlib.redirect_stdout(out):
+            code = main(["--queue-db", str(self.database), "--worker", "--max-jobs", "1"])
+        self.assertEqual(code, 0)
+        self.assertEqual(WorkflowStore(self.database).get(job["job_id"])["status"], "succeeded")
+        self.assertEqual(run.call_count, 1)
+        lines = [json.loads(line) for line in out.getvalue().splitlines()]
+        self.assertEqual(lines[-1]["reason"], "max_jobs_reached")
+        self.assertEqual(lines[-1]["attempts_processed"], 1)
+
     def test_empty_queue_is_a_successful_noop(self):
         WorkflowStore(self.database)
         out = io.StringIO()
