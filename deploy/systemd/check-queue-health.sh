@@ -52,7 +52,7 @@ if [[ ! -d "$BACKUP_DIR" ]]; then
   echo "Health check failed: backup directory is missing." >&2
   exit 1
 fi
-latest_backup="$(find "$BACKUP_DIR" -maxdepth 1 -type f -name 'queue-*.sqlite3' -printf '%T@ %p\n' | sort -nr | head -n 1 || true)"
+latest_backup="$(find "$BACKUP_DIR" -maxdepth 1 -type f -name 'queue-*.sqlite3' -printf '%T@ %p\n' | sort -nr | sed -n '1p' || true)"
 if [[ -z "$latest_backup" ]]; then
   echo "Health check failed: no queue backup was found." >&2
   exit 1
