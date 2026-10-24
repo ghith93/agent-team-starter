@@ -1,6 +1,14 @@
-"""Static regression checks for the optional systemd deployment templates."""
+"""Regression checks for optional systemd deployment templates and health logic."""
+import os
 from pathlib import Path
+import subprocess
+import sys
+import tempfile
+import time
 import unittest
+
+from agent_team.queue_admin import _copy_database
+from agent_team.workflow_store import WorkflowStore
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -59,6 +67,97 @@ class SystemdDeploymentTemplateTests(unittest.TestCase):
         self.assertIn("latest queue backup cannot be opened or failed its integrity check", script)
         self.assertIn("queue_admin status --database", script)
         self.assertIn("flock -n 9", script)
+
+    def _run_health_check(self, root: Path, backup_age_seconds: int = 172800) -> subprocess.CompletedProcess:
+        database = root / "queue.sqlite3"
+        WorkflowStore(database)
+        backup_dir = root / "backups"
+        backup_dir.mkdir(exist_ok=True)
+        env = os.environ.copy()
+        env.update({
+            "APP_DIR": str(ROOT),
+            "PYTHON": sys.executable,
+            "PYTHONPATH": str(ROOT),
+            "QUEUE_DB": str(database),
+            "BACKUP_DIR": str(backup_dir),
+            "LOCK_DIR": str(root / "locks"),
+            "MAX_BACKUP_AGE_SECONDS": str(backup_age_seconds),
+        })
+        return subprocess.run(
+            ["bash", str(DEPLOY / "check-queue-health.sh")],
+            cwd=ROOT,
+            env=env,
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=15,
+        )
+
+    def test_health_check_accepts_recent_readable_backup(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            database = root / "queue.sqlite3"
+            WorkflowStore(database)
+            backup_dir = root / "backups"
+            backup_dir.mkdir()
+            _copy_database(database, backup_dir / "queue-current.sqlite3")
+            result = self._run_health_check_existing(root)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("latest queue backup is recent and readable", result.stdout)
+
+    def test_health_check_rejects_missing_backup(self):
+        with tempfile.TemporaryDirectory() as temp:
+            result = self._run_health_check(Path(temp))
+            self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+            self.assertIn("no queue backup was found", result.stderr)
+
+    def test_health_check_rejects_corrupt_latest_backup(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            result = self._run_health_check(root)
+            self.assertEqual(result.returncode, 1)
+            backup = root / "backups" / "queue-corrupt.sqlite3"
+            backup.write_text("not a SQLite database", encoding="utf-8")
+            result = self._run_health_check_existing(root)
+            self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+            self.assertIn("cannot be opened or failed its integrity check", result.stderr)
+
+    def test_health_check_rejects_stale_backup(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            database = root / "queue.sqlite3"
+            WorkflowStore(database)
+            backup_dir = root / "backups"
+            backup_dir.mkdir()
+            _copy_database(database, backup_dir / "queue-old.sqlite3")
+            old = time.time() - 120
+            os.utime(backup_dir / "queue-old.sqlite3", (old, old))
+            result = self._run_health_check_existing(root, backup_age_seconds=1)
+            self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+            self.assertIn("exceeds the configured age threshold", result.stderr)
+
+    def _run_health_check_existing(self, root: Path, backup_age_seconds: int = 172800) -> subprocess.CompletedProcess:
+        database = root / "queue.sqlite3"
+        backup_dir = root / "backups"
+        env = os.environ.copy()
+        env.update({
+            "APP_DIR": str(ROOT),
+            "PYTHON": sys.executable,
+            "PYTHONPATH": str(ROOT),
+            "QUEUE_DB": str(database),
+            "BACKUP_DIR": str(backup_dir),
+            "LOCK_DIR": str(root / "locks"),
+            "MAX_BACKUP_AGE_SECONDS": str(backup_age_seconds),
+        })
+        return subprocess.run(
+            ["bash", str(DEPLOY / "check-queue-health.sh")],
+            cwd=ROOT,
+            env=env,
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=15,
+        )
 
     def test_worker_does_not_enable_unsafe_unbounded_privileges(self):
         unit = (DEPLOY / "agent-team-worker.service").read_text(encoding="utf-8")
