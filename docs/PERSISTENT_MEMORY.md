@@ -1,6 +1,6 @@
 # Persistent local knowledge store
 
-Status: opt-in SQLite note store with exact keyword search; not yet injected into agent prompts.
+Status: opt-in SQLite note store with exact keyword search and bounded, explicitly requested injection into agent prompts.
 
 ## Capabilities
 
@@ -29,6 +29,7 @@ for note in memory.search("retry authentication"):
 
 - Database content is plaintext; never store API keys, passwords, cookies, sensitive prompts, or private customer data.
 - Search is keyword-based, not semantic/vector retrieval; it does not infer synonyms.
-- This store is not automatically called by the planner, executor, reviewer, or CLI. Prompt injection defenses and source trust checks remain the caller's responsibility when using retrieved notes.
+- CLI retrieval is opt-in: pass both `--memory-db PATH` and `--memory-query TEXT`. The explicit query is required because retrieved notes are sent to the configured model provider. At most five notes and 6,000 title/content characters are included per run.
+- Retrieved notes are wrapped in an `untrusted` context block and all three stages are instructed not to follow embedded instructions. This is defense-in-depth, not a guarantee against prompt injection; review retrieved sources before use.
 - Keep the database outside version control and back it up only to an approved destination.
 - Do not claim persistent agent memory integration until context selection, prompt-size limits, trust labels, and retrieval tests are implemented.
