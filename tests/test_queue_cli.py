@@ -98,6 +98,17 @@ class QueueCliTests(unittest.TestCase):
         self.assertEqual(lines[-1]["reason"], "max_jobs_reached")
         self.assertEqual(lines[-1]["attempts_processed"], 1)
 
+    def test_worker_rejects_memory_flags_instead_of_silently_ignoring_them(self):
+        WorkflowStore(self.database)
+        out = io.StringIO()
+        with contextlib.redirect_stderr(out):
+            code = main([
+                "--queue-db", str(self.database), "--worker",
+                "--memory-db", str(self.database), "--memory-query", "topic",
+            ])
+        self.assertEqual(code, 2)
+        self.assertIn("Queue mode cannot be combined", out.getvalue())
+
     def test_empty_queue_is_a_successful_noop(self):
         WorkflowStore(self.database)
         out = io.StringIO()
