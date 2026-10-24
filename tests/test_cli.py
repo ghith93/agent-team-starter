@@ -26,5 +26,24 @@ class CliTests(unittest.TestCase):
             code = main(["inline task", "--task-file", f.name])
         self.assertEqual(code, 2)
 
+    def test_memory_database_requires_explicit_query(self):
+        out = io.StringIO()
+        with contextlib.redirect_stderr(out):
+            code = main(["task", "--memory-db", "memory.sqlite3"])
+        self.assertEqual(code, 2)
+        self.assertIn("explicit --memory-query", out.getvalue())
+
+    def test_memory_retrieval_is_explicit_and_passed_to_team(self):
+        out = io.StringIO()
+        notes = [{"title": "Retry policy", "content": "Retry transient errors."}]
+        with patch("agent_team.cli.MemoryStore") as memory_cls, \\
+             patch("agent_team.cli.run_team", return_value={"ok": True}) as run, \\
+             contextlib.redirect_stdout(out):
+            memory_cls.return_value.search.return_value = notes
+            code = main(["task", "--memory-db", "memory.sqlite3", "--memory-query", "retry policy"])
+        self.assertEqual(code, 0)
+        memory_cls.return_value.search.assert_called_once_with("retry policy", limit=3)
+        self.assertEqual(run.call_args.kwargs["memory_context"], notes)
+
 if __name__ == "__main__":
     unittest.main()
