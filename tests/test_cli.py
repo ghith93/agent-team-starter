@@ -36,11 +36,11 @@ class CliTests(unittest.TestCase):
     def test_memory_retrieval_is_explicit_and_passed_to_team(self):
         out = io.StringIO()
         notes = [{"title": "Retry policy", "content": "Retry transient errors."}]
-        with patch("agent_team.cli.MemoryStore") as memory_cls, \\
-             patch("agent_team.cli.run_team", return_value={"ok": True}) as run, \\
-             contextlib.redirect_stdout(out):
-            memory_cls.return_value.search.return_value = notes
-            code = main(["task", "--memory-db", "memory.sqlite3", "--memory-query", "retry policy"])
+        with patch("agent_team.cli.MemoryStore") as memory_cls:
+            with patch("agent_team.cli.run_team", return_value={"ok": True}) as run:
+                with contextlib.redirect_stdout(out):
+                    memory_cls.return_value.search.return_value = notes
+                    code = main(["task", "--memory-db", "memory.sqlite3", "--memory-query", "retry policy"])
         self.assertEqual(code, 0)
         memory_cls.return_value.search.assert_called_once_with("retry policy", limit=3)
         self.assertEqual(run.call_args.kwargs["memory_context"], notes)
