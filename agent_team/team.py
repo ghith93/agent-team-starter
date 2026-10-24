@@ -101,6 +101,8 @@ def _memory_block(memory_context: list[dict] | None) -> str:
     if not notes:
         return ""
     serialized = json.dumps(notes, ensure_ascii=False, sort_keys=True)
+    # Prevent note content from literally closing the surrounding context delimiter.
+    serialized = serialized.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
     return "\n\n<retrieved_memory_untrusted>\n" + serialized + "\n</retrieved_memory_untrusted>"
 
 
