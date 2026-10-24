@@ -126,6 +126,13 @@ def main(argv=None):
                     payload = json.loads(output) if output else {}
                 except json.JSONDecodeError:
                     payload = {}
+                if not payload.get("job_id") and error_output:
+                    try:
+                        error_payload = json.loads(error_output)
+                    except json.JSONDecodeError:
+                        error_payload = {}
+                    if isinstance(error_payload, dict) and error_payload.get("job_id"):
+                        payload = error_payload
                 claimed = payload.get("claimed") is True or bool(payload.get("job_id"))
                 if claimed:
                     processed += 1
