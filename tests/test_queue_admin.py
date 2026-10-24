@@ -1,4 +1,5 @@
 import json
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
@@ -51,7 +52,7 @@ class QueueAdminTests(unittest.TestCase):
         invalid_source = self.root / "not-a-database.sqlite3"
         invalid_source.write_text("not sqlite", encoding="utf-8")
         destination = self.root / "backups" / "should-not-remain.sqlite3"
-        with self.assertRaises(Exception):
+        with self.assertRaises(sqlite3.DatabaseError):
             _copy_database(invalid_source, destination)
         self.assertFalse(destination.exists())
 
