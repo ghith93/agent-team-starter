@@ -1,3 +1,4 @@
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
@@ -13,6 +14,34 @@ class WorkflowStoreTests(unittest.TestCase):
 
     def tearDown(self):
         self.tempdir.cleanup()
+
+    def test_migrates_existing_database_without_claim_token_column(self):
+        legacy_path = self.database
+        with sqlite3.connect(legacy_path) as connection:
+            connection.execute("""
+                CREATE TABLE jobs (
+                    job_id TEXT PRIMARY KEY,
+                    task TEXT NOT NULL,
+                    status TEXT NOT NULL CHECK(status IN ('queued','running','succeeded','failed')),
+                    attempts INTEGER NOT NULL CHECK(attempts >= 0),
+                    max_attempts INTEGER NOT NULL CHECK(max_attempts BETWEEN 1 AND 10),
+                    created_at REAL NOT NULL,
+                    updated_at REAL NOT NULL,
+                    available_at REAL NOT NULL,
+                    lease_until REAL,
+                    result_json TEXT,
+                    error_type TEXT
+                )
+            """)
+        migrated = WorkflowStore(legacy_path)
+        queued = migrated.enqueue("legacy database task", now=100)
+        claimed = migrated.claim_next(now=101)
+        self.assertEqual(claimed["job_id"], queued["job_id"])
+        self.assertTrue(claimed["claim_token"])
+        completed = migrated.complete(
+            queued["job_id"], {"ok": True}, claim_token=claimed["claim_token"], now=102
+        )
+        self.assertEqual(completed["status"], "succeeded")
 
     def test_requires_explicit_file_path(self):
         with self.assertRaises(ValueError):
