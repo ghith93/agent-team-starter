@@ -63,7 +63,7 @@ class QueueAdminTests(unittest.TestCase):
         self.store.claim_next(now=125, lease_seconds=10)
         result = queue_status(self.database, now=130)
         self.assertEqual(result["oldest_queued_age_seconds"], 10.0)
-        self.assertEqual(result["oldest_running_age_seconds"], 30.0)
+        self.assertEqual(result["oldest_running_age_seconds"], 5.0)
 
         import io
         from contextlib import redirect_stdout

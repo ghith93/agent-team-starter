@@ -8,7 +8,23 @@ The queue admin commands are local-only and do not call model providers.
 python -m agent_team.queue_admin status --database "$HOME/.agent-team/queue.sqlite3"
 ```
 
-The command returns SQLite integrity status, aggregate counts for queued/running/succeeded/failed jobs, and the number of expired leases. It never prints task text or generated results.
+The command returns SQLite integrity status, aggregate counts for queued/running/succeeded/failed jobs, the number of expired leases, and the age of the oldest queued and running jobs. It never prints task text or generated results.
+
+Use threshold flags when invoking it from cron, systemd, or a monitoring agent. A non-zero exit code signals that an alert condition was met:
+
+```bash
+# Fail if there are any expired worker leases or terminally failed jobs.
+python -m agent_team.queue_admin status \
+  --database "$HOME/.agent-team/queue.sqlite3" \
+  --fail-on-expired-leases --fail-on-failed-jobs
+
+# Fail if the oldest queued job has waited more than 15 minutes.
+python -m agent_team.queue_admin status \
+  --database "$HOME/.agent-team/queue.sqlite3" \
+  --max-queued-age-seconds 900
+```
+
+The status command does not send notifications itself; use the scheduler/monitor to route non-zero exits to an alert channel.
 
 ## Consistent backup
 
