@@ -22,7 +22,12 @@ if ! [[ "$RETENTION_DAYS" =~ ^[1-9][0-9]*$ ]]; then
 fi
 
 install -d -m 0700 "$BACKUP_DIR"
-timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+exec 9>"$BACKUP_DIR/.backup.lock"
+if ! flock -n 9; then
+  echo "Backup skipped: another backup process holds the lock."
+  exit 0
+fi
+timestamp="$(date -u +%Y%m%dT%H%M%S%NZ)"
 destination="$BACKUP_DIR/queue-$timestamp.sqlite3"
 
 # queue_admin verifies the backup and refuses to overwrite an existing path.
