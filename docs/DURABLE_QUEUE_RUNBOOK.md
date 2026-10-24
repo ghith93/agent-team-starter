@@ -31,6 +31,22 @@ python -m agent_team.cli --queue-db "$HOME/.agent-team/queue.sqlite3" --run-next
 
 Each invocation claims at most one ready task using a lease, runs the existing Planner → Executor → Reviewer flow, and persists a metadata-only result. It does not save generated output in the queue database. The task itself remains stored as plaintext.
 
+## Run a polling worker
+
+After enqueueing one or more tasks, you can start a local worker that keeps polling:
+
+```bash
+python -m agent_team.cli --queue-db "$HOME/.agent-team/queue.sqlite3" --worker
+```
+
+Stop it with Ctrl-C. For a bounded smoke test that exits after attempting one job:
+
+```bash
+python -m agent_team.cli --queue-db "$HOME/.agent-team/queue.sqlite3" --worker --max-jobs 1
+```
+
+Use a process supervisor (for example, systemd) to restart the worker after host/process failures; the CLI itself does not install or configure a supervisor. Configure a writable state directory with restrictive OS permissions. Do not run multiple workers against a shared network filesystem; this SQLite queue is intended for a local disk on one host.
+
 Transient provider errors (network/unknown status, HTTP 429, or HTTP 5xx) are requeued with bounded exponential backoff while attempts remain. Authentication, payment, invalid-request, and other non-transient failures are terminal. A later invocation can recover expired worker leases.
 
 Run the command again to process another ready task. An empty queue returns successfully without calling a provider.
@@ -42,7 +58,7 @@ Queue mode intentionally cannot be combined with `--memory-db` or `--memory-quer
 ## Operational limitations
 
 - This is a local, single-machine SQLite queue, not a distributed queue.
-- `--run-next` processes one job and exits. No scheduler, daemon, automatic process restart, health alert, backup job, or deployment is included.
+- `--run-next` processes one job and exits; `--worker` polls continuously until interrupted. No scheduler, automatic process restart, health alert, backup job, or deployment is included. A host process supervisor is still required for unattended recovery.
 - A lease reduces abandoned-job risk but cannot guarantee exactly-once external model calls. A crash after the provider returns but before the success state is committed may cause a later retry and duplicate provider usage.
 - Model-provider calls can use external services and may be subject to provider limits or policies. No provider call occurs for `--enqueue`.
 - Before any unattended 24/7 deployment, configure a supervised runtime, log rotation, monitoring/alerts, secure secret injection, backup/restore tests, and a policy for handling private data.
