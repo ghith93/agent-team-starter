@@ -1,0 +1,29 @@
+[Unit]
+Description=Create a verified local backup of the Agent Team queue
+After=local-fs.target
+
+[Service]
+Type=oneshot
+User=agent-team
+Group=agent-team
+WorkingDirectory=/opt/agent-team-starter
+ExecStart=/bin/bash /opt/agent-team-starter/deploy/systemd/backup-queue.sh
+UMask=0077
+StateDirectory=agent-team
+StateDirectoryMode=0700
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictRealtime=true
+RestrictNamespaces=true
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+AmbientCapabilities=
+ReadOnlyPaths=/opt/agent-team-starter
