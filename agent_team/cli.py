@@ -1,10 +1,13 @@
 """Command-line entry point with explicit offline/configuration modes."""
 from __future__ import annotations
 import argparse
+import contextlib
+import io
 import json
 import os
 import sqlite3
 import sys
+import time
 from pathlib import Path
 from .memory_store import MemoryStore
 from .router import FreeFirstRouter, ProviderError
@@ -25,9 +28,12 @@ def build_parser() -> argparse.ArgumentParser:
     queue_mode = parser.add_mutually_exclusive_group()
     queue_mode.add_argument("--enqueue", action="store_true", help="Persist this task in --queue-db without calling a model")
     queue_mode.add_argument("--run-next", action="store_true", help="Claim and execute one queued task from --queue-db")
+    queue_mode.add_argument("--worker", action="store_true", help="Continuously poll the local queue until interrupted or --max-jobs is reached")
     parser.add_argument("--max-attempts", type=int, default=3, help="Queue retry limit for --enqueue (1-10)")
-    parser.add_argument("--lease-seconds", type=int, default=300, help="Worker lease duration for --run-next (1-86400)")
+    parser.add_argument("--lease-seconds", type=int, default=300, help="Worker lease duration for --run-next/--worker (1-86400)")
     parser.add_argument("--retry-delay-seconds", type=float, default=5.0, help="Base retry delay for transient provider failures")
+    parser.add_argument("--poll-interval-seconds", type=float, default=5.0, help="Idle wait between worker polls (0.5-300)")
+    parser.add_argument("--max-jobs", type=int, default=0, help="Worker exit limit; 0 means keep running until interrupted")
     parser.add_argument("--pretty", action="store_true", help="Pretty-print JSON output (default)")
     return parser
 
@@ -44,11 +50,11 @@ def main(argv=None):
             "note": "Configuration presence only; no network request or billing check was performed."
         }, ensure_ascii=False, indent=2))
         return 0
-    if args.queue_db and not (args.enqueue or args.run_next):
-        print("--queue-db requires either --enqueue or --run-next.", file=sys.stderr)
+    if args.queue_db and not (args.enqueue or args.run_next or args.worker):
+        print("--queue-db requires --enqueue, --run-next, or --worker.", file=sys.stderr)
         return 2
-    if (args.enqueue or args.run_next) and not args.queue_db:
-        print("--enqueue and --run-next require --queue-db.", file=sys.stderr)
+    if (args.enqueue or args.run_next or args.worker) and not args.queue_db:
+        print("--enqueue, --run-next, and --worker require --queue-db.", file=sys.stderr)
         return 2
     if args.task_file and args.task:
         print("Use either task arguments or --task-file, not both.", file=sys.stderr)
@@ -61,10 +67,10 @@ def main(argv=None):
             return 2
     else:
         task = " ".join(args.task)
-    if args.run_next and task.strip():
-        print("--run-next takes its task from the queue; do not pass task text or --task-file.", file=sys.stderr)
+    if (args.run_next or args.worker) and task.strip():
+        print("Queue workers take tasks from the queue; do not pass task text or --task-file.", file=sys.stderr)
         return 2
-    if not args.run_next and not task.strip():
+    if not (args.run_next or args.worker) and not task.strip():
         print('Provide task text or --task-file. Use --check-config for a no-network check.', file=sys.stderr)
         return 2
     if (args.enqueue or args.run_next) and (args.memory_db or args.memory_query):
@@ -73,10 +79,16 @@ def main(argv=None):
     if args.enqueue and not 1 <= args.max_attempts <= 10:
         print("--max-attempts must be from 1 to 10.", file=sys.stderr)
         return 2
-    if args.run_next and not 1 <= args.lease_seconds <= 86400:
+    if (args.run_next or args.worker) and not 1 <= args.lease_seconds <= 86400:
         print("--lease-seconds must be from 1 to 86400.", file=sys.stderr)
         return 2
-    if args.run_next and (args.retry_delay_seconds < 0 or args.retry_delay_seconds > 3600):
+    if args.worker and (args.poll_interval_seconds < 0.5 or args.poll_interval_seconds > 300):
+        print("--poll-interval-seconds must be from 0.5 to 300.", file=sys.stderr)
+        return 2
+    if args.worker and (args.max_jobs < 0 or args.max_jobs > 1000000):
+        print("--max-jobs must be from 0 to 1000000.", file=sys.stderr)
+        return 2
+    if (args.run_next or args.worker) and (args.retry_delay_seconds < 0 or args.retry_delay_seconds > 3600):
         print("--retry-delay-seconds must be from 0 to 3600.", file=sys.stderr)
         return 2
     if args.enqueue:
@@ -92,6 +104,49 @@ def main(argv=None):
             "database": str(args.queue_db),
             "note": "Queue stores task text in plaintext SQLite. Keep this database private and outside version control."
         }, ensure_ascii=False, indent=2))
+        return 0
+    if args.worker:
+        if not args.queue_db.is_file():
+            print("--worker requires an existing queue database; enqueue a task first.", file=sys.stderr)
+            return 2
+        processed = 0
+        print(json.dumps({"worker": "started", "poll_interval_seconds": args.poll_interval_seconds,
+                          "max_jobs": args.max_jobs, "database": str(args.queue_db)}, ensure_ascii=False), flush=True)
+        try:
+            while args.max_jobs == 0 or processed < args.max_jobs:
+                captured_out, captured_err = io.StringIO(), io.StringIO()
+                nested_args = ["--queue-db", str(args.queue_db), "--run-next",
+                               "--lease-seconds", str(args.lease_seconds),
+                               "--retry-delay-seconds", str(args.retry_delay_seconds)]
+                with contextlib.redirect_stdout(captured_out), contextlib.redirect_stderr(captured_err):
+                    code = main(nested_args)
+                output = captured_out.getvalue().strip()
+                error_output = captured_err.getvalue().strip()
+                try:
+                    payload = json.loads(output) if output else {}
+                except json.JSONDecodeError:
+                    payload = {}
+                claimed = payload.get("claimed") is True or bool(payload.get("job_id"))
+                if claimed:
+                    processed += 1
+                    event = {"worker": "job_attempt", "attempts_processed": processed,
+                             "exit_code": code, "job_id": payload.get("job_id"),
+                             "status": payload.get("status"), "retryable": payload.get("retryable")}
+                    print(json.dumps(event, ensure_ascii=False), flush=True)
+                    if error_output:
+                        print(error_output, file=sys.stderr, flush=True)
+                elif code != 0:
+                    print(error_output or output or "Queue worker encountered an unclassified error.",
+                          file=sys.stderr, flush=True)
+                    time.sleep(args.poll_interval_seconds)
+                else:
+                    time.sleep(args.poll_interval_seconds)
+        except KeyboardInterrupt:
+            print(json.dumps({"worker": "stopped", "reason": "interrupt",
+                              "attempts_processed": processed}, ensure_ascii=False), flush=True)
+            return 130
+        print(json.dumps({"worker": "stopped", "reason": "max_jobs_reached",
+                          "attempts_processed": processed}, ensure_ascii=False), flush=True)
         return 0
     if args.run_next:
         if not args.queue_db.is_file():
