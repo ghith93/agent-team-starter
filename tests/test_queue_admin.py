@@ -1,4 +1,5 @@
 import json
+import os
 import sqlite3
 import tempfile
 import unittest
@@ -33,7 +34,7 @@ class QueueAdminTests(unittest.TestCase):
         restored = self.root / "restored" / "queue.sqlite3"
         backup_result = _copy_database(self.database, backup)
         self.assertEqual(backup_result["integrity_check"], "ok")
-        if __import__("os").name == "posix":
+        if os.name == "posix":
             self.assertEqual(backup.stat().st_mode & 0o777, 0o600)
         restore_result = _copy_database(backup, restored)
         self.assertEqual(restore_result["integrity_check"], "ok")
