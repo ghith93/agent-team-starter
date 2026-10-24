@@ -41,11 +41,19 @@ def queue_status(database: str | Path, *, now: float | None = None) -> dict:
             "SELECT COUNT(*) FROM jobs WHERE status = 'running' AND lease_until <= ?",
             (current,),
         ).fetchone()[0]
+        oldest_queued = connection.execute(
+            "SELECT MIN(created_at) FROM jobs WHERE status = 'queued'"
+        ).fetchone()[0]
+        oldest_running = connection.execute(
+            "SELECT MIN(updated_at) FROM jobs WHERE status = 'running'"
+        ).fetchone()[0]
     return {
         "database": str(path.resolve()),
         "healthy": healthy,
         "jobs_by_status": {key: counts.get(key, 0) for key in ("queued", "running", "succeeded", "failed")},
         "expired_leases": expired,
+        "oldest_queued_age_seconds": max(0.0, round(current - oldest_queued, 3)) if oldest_queued is not None else None,
+        "oldest_running_age_seconds": max(0.0, round(current - oldest_running, 3)) if oldest_running is not None else None,
     }
 
 
@@ -87,6 +95,12 @@ def build_parser() -> argparse.ArgumentParser:
     commands = parser.add_subparsers(dest="command", required=True)
     status = commands.add_parser("status", help="Read health and aggregate job counts only")
     status.add_argument("--database", type=Path, required=True)
+    status.add_argument("--fail-on-expired-leases", action="store_true",
+                        help="Return exit code 1 when any worker lease has expired")
+    status.add_argument("--fail-on-failed-jobs", action="store_true",
+                        help="Return exit code 1 when any job is terminally failed")
+    status.add_argument("--max-queued-age-seconds", type=float,
+                        help="Return exit code 1 when the oldest queued job exceeds this age")
     backup = commands.add_parser("backup", help="Create a consistent SQLite backup without overwriting files")
     backup.add_argument("--database", type=Path, required=True)
     backup.add_argument("--destination", type=Path, required=True)
@@ -100,9 +114,23 @@ def main(argv=None) -> int:
     args = build_parser().parse_args(argv)
     try:
         if args.command == "status":
+            if args.max_queued_age_seconds is not None and args.max_queued_age_seconds < 0:
+                raise ValueError("max-queued-age-seconds must be non-negative.")
             result = queue_status(args.database)
+            alerts = []
+            if not result["healthy"]:
+                alerts.append("database_unhealthy")
+            if args.fail_on_expired_leases and result["expired_leases"]:
+                alerts.append("expired_leases_present")
+            if args.fail_on_failed_jobs and result["jobs_by_status"]["failed"]:
+                alerts.append("failed_jobs_present")
+            oldest_age = result["oldest_queued_age_seconds"]
+            if (args.max_queued_age_seconds is not None and oldest_age is not None
+                    and oldest_age > args.max_queued_age_seconds):
+                alerts.append("queued_job_too_old")
+            result["alerts"] = alerts
             print(json.dumps(result, ensure_ascii=False, indent=2))
-            return 0 if result["healthy"] else 1
+            return 1 if alerts else 0
         if args.command == "backup":
             result = _copy_database(args.database, args.destination)
             print(json.dumps(result, ensure_ascii=False, indent=2))

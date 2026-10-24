@@ -57,6 +57,44 @@ class QueueAdminTests(unittest.TestCase):
             _copy_database(invalid_source, destination)
         self.assertFalse(destination.exists())
 
+    def test_status_reports_queue_ages_and_threshold_alerts(self):
+        self.store.enqueue("old queued task", now=100)
+        self.store.enqueue("running task", now=120)
+        self.store.claim_next(now=125, lease_seconds=10)
+        result = queue_status(self.database, now=130)
+        self.assertEqual(result["oldest_queued_age_seconds"], 30.0)
+        self.assertEqual(result["oldest_running_age_seconds"], 5.0)
+
+        import io
+        from contextlib import redirect_stdout
+        out = io.StringIO()
+        with redirect_stdout(out):
+            code = main([
+                "status", "--database", str(self.database),
+                "--max-queued-age-seconds", "0",
+            ])
+        self.assertEqual(code, 1)
+        payload = json.loads(out.getvalue())
+        self.assertIn("queued_job_too_old", payload["alerts"])
+
+    def test_status_can_fail_for_expired_leases_and_terminal_failures(self):
+        claimed = self.store.claim_next(now=101, lease_seconds=1)
+        self.store.fail(claimed["job_id"], "PermanentError", retryable=False, now=102)
+        self.store.enqueue("lease expires", now=103)
+        self.store.claim_next(now=104, lease_seconds=1)
+        import io
+        from contextlib import redirect_stdout
+        out = io.StringIO()
+        with redirect_stdout(out):
+            code = main([
+                "status", "--database", str(self.database),
+                "--fail-on-expired-leases", "--fail-on-failed-jobs",
+            ])
+        self.assertEqual(code, 1)
+        payload = json.loads(out.getvalue())
+        self.assertIn("failed_jobs_present", payload["alerts"])
+        self.assertIn("expired_leases_present", payload["alerts"])
+
     def test_status_requires_existing_database(self):
         with self.assertRaises(ValueError):
             queue_status(self.root / "missing.sqlite3")
