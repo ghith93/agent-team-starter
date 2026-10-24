@@ -2,7 +2,7 @@
 
 ## Status
 
-These files are deployment templates, not proof of a running service. The repository preflight is non-mutating. No host is changed by running it.
+These files are deployment templates, not proof of a running service. The repository preflight is non-mutating. No host is changed by running it. The default repository-only mode skips systemd unit verification because unit directives reference the target host's installation paths; use `--host-checks` on the target host to run `systemd-analyze verify` when available.
 
 ## 1. Preflight (dry-run)
 

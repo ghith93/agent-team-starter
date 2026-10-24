@@ -70,18 +70,20 @@ for script in "$ROOT_DIR"/deploy/systemd/*.sh; do
   if bash -n "$script"; then :; else fail "shell syntax check failed for $(basename "$script")"; fi
 done
 
-if command -v systemd-analyze >/dev/null 2>&1; then
+if [[ "$HOST_CHECKS" != true ]]; then
+  warn "systemd unit verification skipped in repository-only dry-run; unit paths reference the target host"
+elif command -v systemd-analyze >/dev/null 2>&1; then
   units=()
   for unit in "$ROOT_DIR"/deploy/systemd/*.service "$ROOT_DIR"/deploy/systemd/*.timer; do
     [[ -f "$unit" ]] && units+=("$unit")
   done
-  if (("${#units[@]}" > 0)) && systemd-analyze verify "${units[@]}" >/dev/null 2>&1; then
+  if (("${#units[@]}" > 0)) && systemd-analyze verify "${units[@]}"; then
     ok "systemd unit syntax verified"
   else
-    fail "systemd unit verification failed; inspect systemd-analyze output locally"
+    fail "systemd unit verification failed; review the preceding systemd-analyze diagnostics"
   fi
 else
-  warn "systemd-analyze unavailable; unit validation skipped (normal in some containers)"
+  warn "systemd-analyze unavailable; unit validation skipped"
 fi
 
 validate_env_file() {
