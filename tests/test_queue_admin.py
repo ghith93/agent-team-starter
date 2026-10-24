@@ -32,6 +32,8 @@ class QueueAdminTests(unittest.TestCase):
         restored = self.root / "restored" / "queue.sqlite3"
         backup_result = _copy_database(self.database, backup)
         self.assertEqual(backup_result["integrity_check"], "ok")
+        if __import__("os").name == "posix":
+            self.assertEqual(backup.stat().st_mode & 0o777, 0o600)
         restore_result = _copy_database(backup, restored)
         self.assertEqual(restore_result["integrity_check"], "ok")
         self.assertEqual(WorkflowStore(restored).get(job["job_id"])["task"], "backup sample task")
@@ -44,6 +46,14 @@ class QueueAdminTests(unittest.TestCase):
             _copy_database(self.database, backup)
         with self.assertRaises(ValueError):
             _copy_database(self.database, self.database)
+
+    def test_failed_backup_removes_reserved_partial_destination(self):
+        invalid_source = self.root / "not-a-database.sqlite3"
+        invalid_source.write_text("not sqlite", encoding="utf-8")
+        destination = self.root / "backups" / "should-not-remain.sqlite3"
+        with self.assertRaises(Exception):
+            _copy_database(invalid_source, destination)
+        self.assertFalse(destination.exists())
 
     def test_status_requires_existing_database(self):
         with self.assertRaises(ValueError):
