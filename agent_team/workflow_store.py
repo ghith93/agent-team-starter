@@ -86,7 +86,7 @@ class WorkflowStore:
         current = time.time() if now is None else float(now)
         ready_at = current if available_at is None else float(available_at)
         job_id = str(uuid.uuid4())
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             connection.execute(
                 """INSERT INTO jobs
                    (job_id, task, status, attempts, max_attempts, created_at, updated_at,
@@ -100,7 +100,7 @@ class WorkflowStore:
         if not isinstance(lease_seconds, int) or isinstance(lease_seconds, bool) or not 1 <= lease_seconds <= _MAX_LEASE_SECONDS:
             raise ValueError(f"lease_seconds must be an integer from 1 to {_MAX_LEASE_SECONDS}.")
         current = time.time() if now is None else float(now)
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             connection.execute("BEGIN IMMEDIATE")
             try:
                 # Recover abandoned workers. Exhausted jobs become terminal failures.
@@ -138,7 +138,7 @@ class WorkflowStore:
     def complete(self, job_id: str, result: Any, *, now: float | None = None) -> dict[str, Any]:
         current = time.time() if now is None else float(now)
         encoded = json.dumps(result, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             connection.execute("BEGIN IMMEDIATE")
             try:
                 row = connection.execute("SELECT status FROM jobs WHERE job_id = ?", (job_id,)).fetchone()
@@ -165,7 +165,7 @@ class WorkflowStore:
         if base_delay_seconds < 0:
             raise ValueError("base_delay_seconds must be non-negative.")
         current = time.time() if now is None else float(now)
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             connection.execute("BEGIN IMMEDIATE")
             try:
                 row = connection.execute("SELECT * FROM jobs WHERE job_id = ?", (job_id,)).fetchone()
@@ -195,11 +195,11 @@ class WorkflowStore:
                 raise
 
     def get(self, job_id: str) -> dict[str, Any] | None:
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             return self._job(connection.execute("SELECT * FROM jobs WHERE job_id = ?", (job_id,)).fetchone())
 
     def health_check(self) -> bool:
         """Return whether SQLite can execute a trivial read; no secrets or row data returned."""
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             row = connection.execute("PRAGMA quick_check").fetchone()
             return bool(row and row[0] == "ok")
