@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import closing
 import json
 import os
 import sqlite3
@@ -32,7 +33,7 @@ def queue_status(database: str | Path, *, now: float | None = None) -> dict:
     if not path.is_file():
         raise ValueError("Queue database does not exist.")
     current = time.time() if now is None else float(now)
-    with _open_readonly(path) as connection:
+    with closing(_open_readonly(path)) as connection:
         healthy = _quick_check(connection)
         rows = connection.execute("SELECT status, COUNT(*) AS count FROM jobs GROUP BY status").fetchall()
         counts = {row["status"]: row["count"] for row in rows}
@@ -59,9 +60,10 @@ def _copy_database(source: Path, destination: Path) -> dict:
         raise ValueError("Destination already exists; refusing to overwrite it.")
     destination.parent.mkdir(parents=True, exist_ok=True)
     try:
-        with _open_readonly(source) as src, sqlite3.connect(str(destination), timeout=5.0) as dst:
-            src.backup(dst)
-        with sqlite3.connect(str(destination), timeout=5.0) as check:
+        with closing(_open_readonly(source)) as src:
+            with closing(sqlite3.connect(str(destination), timeout=5.0)) as dst:
+                src.backup(dst)
+        with closing(sqlite3.connect(str(destination), timeout=5.0)) as check:
             healthy = _quick_check(check)
         if not healthy:
             raise sqlite3.DatabaseError("Copied database failed integrity check.")
