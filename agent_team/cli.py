@@ -61,6 +61,9 @@ def main(argv=None):
         return 2
     memory_context = None
     if args.memory_db:
+        if not args.memory_db.is_file():
+            print("--memory-db must point to an existing local SQLite file.", file=sys.stderr)
+            return 2
         try:
             memory_context = MemoryStore(args.memory_db).search(args.memory_query, limit=args.memory_limit)
         except (OSError, ValueError, sqlite3.Error) as exc:
