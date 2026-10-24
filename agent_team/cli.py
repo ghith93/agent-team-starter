@@ -73,7 +73,7 @@ def main(argv=None):
     if not (args.run_next or args.worker) and not task.strip():
         print('Provide task text or --task-file. Use --check-config for a no-network check.', file=sys.stderr)
         return 2
-    if (args.enqueue or args.run_next) and (args.memory_db or args.memory_query):
+    if (args.enqueue or args.run_next or args.worker) and (args.memory_db or args.memory_query):
         print("Queue mode cannot be combined with --memory-db/--memory-query; enqueue only non-sensitive task text.", file=sys.stderr)
         return 2
     if args.enqueue and not 1 <= args.max_attempts <= 10:
