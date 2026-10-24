@@ -102,6 +102,66 @@ class SystemdDeploymentTemplateTests(unittest.TestCase):
             self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
             self.assertIn("no queue backup was found", result.stderr)
 
+    def test_alert_wrapper_sends_generic_webhook_only_on_health_failure(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            check = root / "check.sh"
+            check.write_text('#!/usr/bin/env bash\\necho "private task text must not be forwarded"\\nexit 1\\n', encoding="utf-8")
+            curl = root / "curl"
+            capture = root / "curl-args.txt"
+            curl.write_text(
+                '#!/usr/bin/env bash\\nprintf "%s\\n" "$@" > "$CURL_CAPTURE"\\nexit 0\\n',
+                encoding="utf-8",
+            )
+            check.chmod(0o700)
+            curl.chmod(0o700)
+            env = os.environ.copy()
+            env.update({
+                "HEALTH_CHECK_SCRIPT": str(check),
+                "CURL_BIN": str(curl),
+                "CURL_CAPTURE": str(capture),
+                "ALERT_WEBHOOK_URL": "https://alerts.example.test/hook",
+            })
+            result = subprocess.run(
+                ["bash", str(DEPLOY / "run-queue-health-with-alert.sh")],
+                cwd=ROOT, env=env, text=True, capture_output=True, check=False, timeout=10,
+            )
+            self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+            args = capture.read_text(encoding="utf-8")
+            self.assertIn("https://alerts.example.test/hook", args)
+            self.assertIn("Agent Team queue health check failed", args)
+            self.assertNotIn("private task text", args)
+
+    def test_alert_wrapper_does_not_send_on_success_and_rejects_non_https(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            check = root / "check.sh"
+            check.write_text('#!/usr/bin/env bash\\nexit 0\\n', encoding="utf-8")
+            curl = root / "curl"
+            capture = root / "curl-called"
+            curl.write_text('#!/usr/bin/env bash\\ntouch "$CURL_CAPTURE"\\n', encoding="utf-8")
+            check.chmod(0o700)
+            curl.chmod(0o700)
+            env = os.environ.copy()
+            env.update({
+                "HEALTH_CHECK_SCRIPT": str(check), "CURL_BIN": str(curl),
+                "CURL_CAPTURE": str(capture), "ALERT_WEBHOOK_URL": "http://insecure.example.test/hook",
+            })
+            result = subprocess.run(
+                ["bash", str(DEPLOY / "run-queue-health-with-alert.sh")],
+                cwd=ROOT, env=env, text=True, capture_output=True, check=False, timeout=10,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertFalse(capture.exists())
+            check.write_text('#!/usr/bin/env bash\\nexit 1\\n', encoding="utf-8")
+            result = subprocess.run(
+                ["bash", str(DEPLOY / "run-queue-health-with-alert.sh")],
+                cwd=ROOT, env=env, text=True, capture_output=True, check=False, timeout=10,
+            )
+            self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+            self.assertIn("requires an HTTPS URL", result.stderr)
+            self.assertFalse(capture.exists())
+
     def test_health_monitor_is_scheduled_and_checks_queue_and_backup_integrity(self):
         service = (DEPLOY / "agent-team-queue-health.service").read_text(encoding="utf-8")
         timer = (DEPLOY / "agent-team-queue-health.timer").read_text(encoding="utf-8")

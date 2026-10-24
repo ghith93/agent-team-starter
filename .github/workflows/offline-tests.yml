@@ -33,4 +33,5 @@ jobs:
         run: |
           bash -n deploy/systemd/backup-queue.sh
           bash -n deploy/systemd/check-queue-health.sh
+          bash -n deploy/systemd/run-queue-health-with-alert.sh
           bash -n deploy/systemd/test-queue-restore.sh
