@@ -62,3 +62,8 @@ Queue mode intentionally cannot be combined with `--memory-db` or `--memory-quer
 - A lease reduces abandoned-job risk but cannot guarantee exactly-once external model calls. A crash after the provider returns but before the success state is committed may cause a later retry and duplicate provider usage.
 - Model-provider calls can use external services and may be subject to provider limits or policies. No provider call occurs for `--enqueue`.
 - Before any unattended 24/7 deployment, configure a supervised runtime, log rotation, monitoring/alerts, secure secret injection, backup/restore tests, and a policy for handling private data.
+
+
+## Lease ownership and long-running jobs
+
+Each claim receives a unique claim token. Completion and failure updates must present that token, so a worker whose lease expired cannot overwrite the state of a later claimant. The CLI renews a live lease in the background while the agent team runs. If renewal fails, the result is not committed as successful. This reduces duplicate execution risk but does not guarantee exactly-once provider calls: a provider may have completed a request before a process or connection fails.

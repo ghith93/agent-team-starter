@@ -7,6 +7,7 @@ import json
 import os
 import sqlite3
 import sys
+import threading
 import time
 from pathlib import Path
 from .memory_store import MemoryStore
@@ -36,6 +37,33 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-jobs", type=int, default=0, help="Worker exit limit; 0 means keep running until interrupted")
     parser.add_argument("--pretty", action="store_true", help="Pretty-print JSON output (default)")
     return parser
+
+
+def _run_with_lease_heartbeat(store: WorkflowStore, job: dict, lease_seconds: int, router):
+    stop = threading.Event()
+    lease_lost = threading.Event()
+    interval = max(0.5, min(30.0, lease_seconds / 3))
+
+    def heartbeat():
+        while not stop.wait(interval):
+            try:
+                if not store.renew_lease(job["job_id"], job["claim_token"], lease_seconds=lease_seconds):
+                    lease_lost.set()
+                    return
+            except (OSError, sqlite3.Error, WorkflowStateError):
+                lease_lost.set()
+                return
+
+    thread = threading.Thread(target=heartbeat, name="queue-lease-heartbeat", daemon=True)
+    thread.start()
+    try:
+        result = run_team(job["task"], router)
+    finally:
+        stop.set()
+        thread.join(timeout=interval + 1)
+    if lease_lost.is_set():
+        raise WorkflowStateError("Job lease was lost during execution; result was not committed.")
+    return result
 
 
 def main(argv=None):
@@ -169,7 +197,7 @@ def main(argv=None):
             print(json.dumps({"ok": True, "claimed": False, "note": "No queued job is ready."}, ensure_ascii=False))
             return 0
         try:
-            result = run_team(job["task"], router)
+            result = _run_with_lease_heartbeat(store, job, args.lease_seconds, router)
             metadata = {
                 "run_id": result.get("run_id"),
                 "stage_count": len(result.get("trace", [])),
@@ -177,7 +205,7 @@ def main(argv=None):
                 "total_duration_ms": result.get("total_duration_ms"),
                 "final_chars": len(result.get("final", "")) if isinstance(result.get("final"), str) else None,
             }
-            store.complete(job["job_id"], metadata)
+            store.complete(job["job_id"], metadata, claim_token=job["claim_token"])
             print(json.dumps({"ok": True, "claimed": True, "job_id": job["job_id"],
                               "status": "succeeded", "result_metadata": metadata}, ensure_ascii=False, indent=2))
             return 0
@@ -189,7 +217,7 @@ def main(argv=None):
             )
             error_type = type(cause).__name__
             try:
-                failed = store.fail(job["job_id"], error_type, retryable=retryable,
+                failed = store.fail(job["job_id"], error_type, claim_token=job["claim_token"], retryable=retryable,
                                     base_delay_seconds=args.retry_delay_seconds)
                 status = failed["status"]
             except (WorkflowStateError, ValueError, sqlite3.Error) as store_exc:

@@ -23,10 +23,10 @@ class WorkflowStoreConnectionTests(unittest.TestCase):
             with patch("agent_team.workflow_store.sqlite3.connect", side_effect=tracking_connect):
                 first = store.enqueue("first task", now=100)
                 claimed = store.claim_next(now=101)
-                store.complete(claimed["job_id"], {"ok": True}, now=102)
+                store.complete(claimed["job_id"], {"ok": True}, claim_token=claimed["claim_token"], now=102)
                 second = store.enqueue("second task", now=103)
                 claimed_second = store.claim_next(now=104)
-                store.fail(claimed_second["job_id"], "TemporaryError", now=105)
+                store.fail(claimed_second["job_id"], "TemporaryError", claim_token=claimed_second["claim_token"], now=105)
                 store.get(first["job_id"])
                 store.health_check()
 

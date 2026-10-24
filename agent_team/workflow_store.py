@@ -53,9 +53,13 @@ class WorkflowStore:
                     available_at REAL NOT NULL,
                     lease_until REAL,
                     result_json TEXT,
+                    claim_token TEXT,
                     error_type TEXT
                 )
             """)
+            columns = {row["name"] for row in connection.execute("PRAGMA table_info(jobs)")}
+            if "claim_token" not in columns:
+                connection.execute("ALTER TABLE jobs ADD COLUMN claim_token TEXT")
             connection.execute(
                 "CREATE INDEX IF NOT EXISTS jobs_ready_idx ON jobs(status, available_at, created_at)"
             )
@@ -107,7 +111,7 @@ class WorkflowStore:
                 connection.execute(
                     """UPDATE jobs
                        SET status = CASE WHEN attempts >= max_attempts THEN 'failed' ELSE 'queued' END,
-                           available_at = ?, lease_until = NULL, updated_at = ?,
+                           available_at = ?, lease_until = NULL, updated_at = ?, claim_token = NULL,
                            error_type = CASE WHEN attempts >= max_attempts
                                              THEN COALESCE(error_type, 'LeaseExpired') ELSE error_type END
                        WHERE status = 'running' AND lease_until <= ?""",
@@ -122,11 +126,12 @@ class WorkflowStore:
                 if row is None:
                     connection.execute("COMMIT")
                     return None
+                claim_token = str(uuid.uuid4())
                 connection.execute(
                     """UPDATE jobs SET status = 'running', attempts = attempts + 1,
-                       lease_until = ?, updated_at = ?, error_type = NULL
+                       lease_until = ?, updated_at = ?, error_type = NULL, claim_token = ?
                        WHERE job_id = ? AND status = 'queued'""",
-                    (current + lease_seconds, current, row["job_id"]),
+                    (current + lease_seconds, current, claim_token, row["job_id"]),
                 )
                 claimed = connection.execute("SELECT * FROM jobs WHERE job_id = ?", (row["job_id"],)).fetchone()
                 connection.execute("COMMIT")
@@ -135,21 +140,28 @@ class WorkflowStore:
                 connection.execute("ROLLBACK")
                 raise
 
-    def complete(self, job_id: str, result: Any, *, now: float | None = None) -> dict[str, Any]:
+    def complete(self, job_id: str, result: Any, *, claim_token: str, now: float | None = None) -> dict[str, Any]:
         current = time.time() if now is None else float(now)
         encoded = json.dumps(result, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
         with closing(self._connect()) as connection:
             connection.execute("BEGIN IMMEDIATE")
             try:
-                row = connection.execute("SELECT status FROM jobs WHERE job_id = ?", (job_id,)).fetchone()
+                row = connection.execute(
+                    "SELECT status, claim_token, lease_until FROM jobs WHERE job_id = ?", (job_id,)
+                ).fetchone()
                 if row is None:
                     raise WorkflowStateError("Job not found.")
                 if row["status"] != "running":
                     raise WorkflowStateError("Only a running job can be completed.")
+                if row["claim_token"] != claim_token:
+                    raise WorkflowStateError("Claim token mismatch; stale worker cannot complete job.")
+                if row["lease_until"] is None or row["lease_until"] <= current:
+                    raise WorkflowStateError("Job lease expired; stale worker cannot complete job.")
                 connection.execute(
                     """UPDATE jobs SET status = 'succeeded', result_json = ?, lease_until = NULL,
-                       error_type = NULL, updated_at = ? WHERE job_id = ?""",
-                    (encoded, current, job_id),
+                       error_type = NULL, claim_token = NULL, updated_at = ?
+                       WHERE job_id = ? AND status = 'running' AND claim_token = ?""",
+                    (encoded, current, job_id, claim_token),
                 )
                 updated = connection.execute("SELECT * FROM jobs WHERE job_id = ?", (job_id,)).fetchone()
                 connection.execute("COMMIT")
@@ -158,7 +170,7 @@ class WorkflowStore:
                 connection.execute("ROLLBACK")
                 raise
 
-    def fail(self, job_id: str, error_type: str, *, retryable: bool = True,
+    def fail(self, job_id: str, error_type: str, *, claim_token: str, retryable: bool = True,
              base_delay_seconds: float = 5.0, now: float | None = None) -> dict[str, Any]:
         if not isinstance(error_type, str) or not _ERROR_TYPE.fullmatch(error_type):
             raise ValueError("error_type must be a short exception/type name, not an error message.")
@@ -173,19 +185,23 @@ class WorkflowStore:
                     raise WorkflowStateError("Job not found.")
                 if row["status"] != "running":
                     raise WorkflowStateError("Only a running job can fail.")
+                if row["claim_token"] != claim_token:
+                    raise WorkflowStateError("Claim token mismatch; stale worker cannot fail job.")
+                if row["lease_until"] is None or row["lease_until"] <= current:
+                    raise WorkflowStateError("Job lease expired; stale worker cannot fail job.")
                 should_retry = bool(retryable) and row["attempts"] < row["max_attempts"]
                 if should_retry:
                     delay = min(_MAX_BACKOFF_SECONDS, float(base_delay_seconds) * (2 ** (row["attempts"] - 1)))
                     connection.execute(
-                        """UPDATE jobs SET status = 'queued', available_at = ?, lease_until = NULL,
-                           error_type = ?, updated_at = ? WHERE job_id = ?""",
-                        (current + delay, error_type, current, job_id),
+                        """UPDATE jobs SET status = 'queued', available_at = ?, lease_until = NULL, claim_token = NULL,
+                           error_type = ?, updated_at = ? WHERE job_id = ? AND claim_token = ?""",
+                        (current + delay, error_type, current, job_id, claim_token),
                     )
                 else:
                     connection.execute(
-                        """UPDATE jobs SET status = 'failed', lease_until = NULL,
-                           error_type = ?, updated_at = ? WHERE job_id = ?""",
-                        (error_type, current, job_id),
+                        """UPDATE jobs SET status = 'failed', lease_until = NULL, claim_token = NULL,
+                           error_type = ?, updated_at = ? WHERE job_id = ? AND claim_token = ?""",
+                        (error_type, current, job_id, claim_token),
                     )
                 updated = connection.execute("SELECT * FROM jobs WHERE job_id = ?", (job_id,)).fetchone()
                 connection.execute("COMMIT")
@@ -193,6 +209,20 @@ class WorkflowStore:
             except Exception:
                 connection.execute("ROLLBACK")
                 raise
+
+    def renew_lease(self, job_id: str, claim_token: str, *, lease_seconds: int = 300,
+                    now: float | None = None) -> bool:
+        """Extend a live lease only for its current claimant; never revive an expired lease."""
+        if not isinstance(lease_seconds, int) or isinstance(lease_seconds, bool) or not 1 <= lease_seconds <= _MAX_LEASE_SECONDS:
+            raise ValueError(f"lease_seconds must be an integer from 1 to {_MAX_LEASE_SECONDS}.")
+        current = time.time() if now is None else float(now)
+        with closing(self._connect()) as connection:
+            cursor = connection.execute(
+                """UPDATE jobs SET lease_until = ?
+                   WHERE job_id = ? AND status = 'running' AND claim_token = ? AND lease_until > ?""",
+                (current + lease_seconds, job_id, claim_token, current),
+            )
+            return cursor.rowcount == 1
 
     def get(self, job_id: str) -> dict[str, Any] | None:
         with closing(self._connect()) as connection:
