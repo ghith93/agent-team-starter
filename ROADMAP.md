@@ -10,6 +10,7 @@ This roadmap prioritizes evidence, reversible changes, and free/open-source opti
 - [x] Review `.gitignore` and keep `.env.example` trackable.
 
 ## Phase B — Repository safeguards
+- [x] Add an iPhone-only, zero-cost completion plan that separates repository tasks from tasks requiring a real host, destination, or account settings (2026-10-26).
 - [x] Enable and verify the active `main` ruleset: PR required, six correctly named checks required, zero required approvals, force pushes blocked; verified 2026-10-25.
 - [ ] Verify Secret Scanning and Push Protection availability and state.
 - [x] Keep Gitleaks scanning on PRs and run history-aware scans in CI.
