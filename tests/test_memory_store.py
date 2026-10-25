@@ -1,3 +1,5 @@
+import os
+import stat
 import tempfile
 import unittest
 from pathlib import Path
@@ -13,6 +15,11 @@ class MemoryStoreTests(unittest.TestCase):
 
     def tearDown(self):
         self.tempdir.cleanup()
+
+    def test_database_permissions_are_owner_only(self):
+        if os.name != "posix":
+            self.skipTest("POSIX file permission semantics required")
+        self.assertEqual(stat.S_IMODE(self.database.stat().st_mode), 0o600)
 
     def test_add_and_retrieve_persisted_note(self):
         item = self.store.add(
