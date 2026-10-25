@@ -1,5 +1,7 @@
 # Operations Runbook (iPhone-first)
 
+For the complete mobile-only, zero-cost checklist—including GitHub settings, evidence requirements, and deployment acceptance tests—see [the zero-cost completion plan](docs/IPHONE_ZERO_COST_COMPLETION_PLAN.md).
+
 ## Safety rules
 - Never paste a provider key, GitHub token, cookie, recovery code, or customer data into chat, an issue, a commit, or a public log.
 - Do not merge a change while required checks are failing or unexplained.
