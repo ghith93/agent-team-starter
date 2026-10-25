@@ -1,0 +1,31 @@
+[Unit]
+Description=Check Agent Team queue health and age thresholds
+After=local-fs.target
+
+[Service]
+Type=oneshot
+User=agent-team
+Group=agent-team
+WorkingDirectory=/opt/agent-team-starter
+EnvironmentFile=-/etc/agent-team/health.env
+ExecStart=/bin/bash /opt/agent-team-starter/deploy/systemd/run-queue-health-with-alert.sh
+UMask=0077
+StateDirectory=agent-team
+StateDirectoryMode=0700
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictRealtime=true
+RestrictNamespaces=true
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+AmbientCapabilities=
+ReadOnlyPaths=/opt/agent-team-starter
