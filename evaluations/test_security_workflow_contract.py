@@ -154,16 +154,16 @@ class SecurityWorkflowContractTests(unittest.TestCase):
 
     def test_required_isolated_audit_runs_on_every_pull_request_to_main(self):
         source = (WORKFLOWS_DIR / "security-audit-isolated.yml").read_text(encoding="utf-8")
-        trigger_block = source.split("\\npermissions:", 1)[0]
+        trigger_block = source.split("\npermissions:", 1)[0]
         match = re.search(
-            r"(?ms)^  pull_request:\\n(.*?)(?=^  [A-Za-z_][\\w-]*:|\\Z)",
+            r"(?ms)^  pull_request:\n(.*?)(?=^  [A-Za-z_][\w-]*:|\Z)",
             trigger_block,
         )
         self.assertIsNotNone(match, "isolated security audit must run on pull requests")
         pull_request_block = match.group(1)
         self.assertRegex(
             pull_request_block,
-            r"(?m)^    branches:\\s*\\[main\\]\\s*$",
+            r"(?m)^    branches:\s*\[main\]\s*$",
             "the required audit should be scoped to pull requests targeting main",
         )
         self.assertNotRegex(
