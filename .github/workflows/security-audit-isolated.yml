@@ -1,0 +1,70 @@
+name: Isolated security audits
+
+on:
+  pull_request:
+    paths:
+      - "agent_team/**"
+      - "web_research/**"
+      - "tests/**"
+      - "requirements*.txt"
+      - ".github/workflows/security-audit-isolated.yml"
+  push:
+    branches: [main]
+    paths:
+      - "agent_team/**"
+      - "web_research/**"
+      - "tests/**"
+      - "requirements*.txt"
+      - ".github/workflows/security-audit-isolated.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Deliberately no cancel-in-progress concurrency group: security jobs must not
+# be silently cancelled by a newer push while installing independent tools.
+
+jobs:
+  dependency-audit:
+    name: Dependency vulnerability audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install audit tool
+        run: python -m pip install --disable-pip-version-check "pip-audit==2.9.0"
+      - name: Audit declared runtime dependencies
+        run: python -m pip_audit -r requirements.txt
+
+  python-sast:
+    name: Python static security analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install static analyzer
+        run: python -m pip install --disable-pip-version-check "bandit==1.8.6"
+      - name: Scan application source
+        run: bandit -r agent_team web_research -ll
+
+  semgrep:
+    name: Semgrep Python rules
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Semgrep
+        run: python -m pip install --disable-pip-version-check "semgrep==1.140.0"
+      - name: Scan application source
+        run: semgrep scan --config p/python --error agent_team web_research
