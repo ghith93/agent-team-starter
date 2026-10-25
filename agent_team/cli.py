@@ -6,10 +6,8 @@ import os
 import sys
 from pathlib import Path
 from .router import FreeFirstRouter, ProviderError
-from .team import TeamExecutionError, run_team
+from .team import MAX_TASK_CHARS, TeamExecutionError, run_team
 
-
-MAX_TASK_CHARS = 12000
 
 
 def build_parser() -> argparse.ArgumentParser:
