@@ -38,6 +38,9 @@ class SecurityWorkflowContractTests(unittest.TestCase):
             "detect-secrets scan --all-files",
             "Fail if detect-secrets found candidates",
             "Enforce scan outcomes",
+            "Verify detect-secrets detects inert synthetic canary",
+            "SYNTHETIC_CANARY_7f3a91d4c8e2b605a17f",
+            "FAIL: detect-secrets did not detect synthetic canary",
         ):
             with self.subTest(marker=marker):
                 self.assertIn(marker, self.text)

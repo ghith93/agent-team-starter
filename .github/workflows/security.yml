@@ -74,6 +74,26 @@ jobs:
         id: semgrep
         continue-on-error: true
         run: semgrep scan --error --config p/python --config p/secrets --json --output security-reports/semgrep.json agent_team evaluations tests
+      - name: Verify detect-secrets detects inert synthetic canary
+        shell: bash
+        run: |
+          set -euo pipefail
+          canary_dir="$(mktemp -d)"
+          report="${RUNNER_TEMP}/detect-secrets-canary-report.json"
+          trap 'rm -rf "$canary_dir" "$report"' EXIT
+          printf '%s\n' 'password = "SYNTHETIC_CANARY_7f3a91d4c8e2b605a17f"' > "$canary_dir/canary.py"
+          detect-secrets scan --all-files "$canary_dir" > "$report"
+          python - "$report" <<'PYCANARY'
+          import json
+          import sys
+
+          with open(sys.argv[1], encoding="utf-8") as report_file:
+              report_data = json.load(report_file)
+          findings = sum(len(items) for items in report_data.get("results", {}).values())
+          if findings < 1:
+              raise SystemExit("FAIL: detect-secrets did not detect synthetic canary")
+          print("PASS: detect-secrets detected the inert synthetic canary")
+          PYCANARY
       - name: detect-secrets baseline scan
         id: detect_secrets
         continue-on-error: true
