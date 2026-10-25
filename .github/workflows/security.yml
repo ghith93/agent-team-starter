@@ -81,20 +81,22 @@ jobs:
           )
           python - "$RUNNER_TEMP/detect-secrets-canary.json" <<'PYSCAN'
           import json
+          import subprocess
           import sys
 
           with open(sys.argv[1], encoding="utf-8") as report_file:
               report = json.load(report_file)
-          results = report.get("results", {})
-          findings = {path: items for path, items in results.items() if items}
+          findings = {path: items for path, items in report.get("results", {}).items() if items}
           if not findings:
               raise SystemExit("FAIL: detect-secrets did not flag the inert synthetic canary")
           print(f"PASS: detect-secrets flagged the inert canary ({sum(map(len, findings.values()))} finding(s))")
-          # Match the production gate's decision rule: any finding must fail the gate.
-          gate_exit_code = 1 if findings else 0
-          if gate_exit_code != 1:
-              raise SystemExit("FAIL: secret gate did not fail closed on a finding")
-          print("PASS: gate decision fails closed when findings exist")
+          gate = subprocess.run(
+              [sys.executable, "scripts/check_detect_secrets.py", sys.argv[1]],
+              capture_output=True, text=True, check=False,
+          )
+          if gate.returncode != 1:
+              raise SystemExit(f"FAIL: shared secret gate returned {gate.returncode}, expected 1\\n{gate.stdout}\\n{gate.stderr}")
+          print("PASS: shared production gate fails closed when findings exist")
           PYSCAN
       - name: Bandit Python security lint
         id: bandit
@@ -116,16 +118,7 @@ jobs:
         id: detect_secrets_gate
         if: steps.detect_secrets.outcome == 'success'
         continue-on-error: true
-        run: |
-          python - <<'PYSCAN'
-          import json, sys
-          with open('security-reports/detect-secrets.json', encoding='utf-8') as f:
-              report = json.load(f)
-          results = report.get('results', {})
-          findings = {path: items for path, items in results.items() if items}
-          print(json.dumps({'files_with_findings': len(findings), 'findings': findings}, indent=2))
-          sys.exit(1 if findings else 0)
-          PYSCAN
+        run: python scripts/check_detect_secrets.py security-reports/detect-secrets.json
       - name: Enforce scan outcomes
         if: always()
         env:
