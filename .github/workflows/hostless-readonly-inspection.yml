@@ -36,7 +36,7 @@ jobs:
       - name: Collect redacted Hostless diagnostics
         env:
           HOSTLESS_TOKEN: ${{ secrets.HOSTLESS_TOKEN }}
-          HOSTLESS_WORKER: ${{ inputs.worker_name }}
+          HOSTLESS_WORKER: ${{ inputs.worker_name || 'agent-team-worker' }}
         run: python3 scripts/hostless_readonly_inspect.py
 
       - name: Upload short-lived redacted report
