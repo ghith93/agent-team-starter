@@ -1,0 +1,55 @@
+name: Claudex Loop offline trial
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "docs/CLAUDEX_LOOP_TRIAL.md"
+      - "docs/OPEN_SOURCE_ADOPTION_PLAN.md"
+      - ".github/workflows/claudex-loop-trial.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: claudex-loop-offline-trial-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  upstream-offline-validation:
+    name: Pinned upstream offline validation (no model calls)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout this trial branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Checkout Claudex Loop at reviewed commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: chaseai-yt/claudex-loop
+          ref: 53cddc42e39346fb8c6d5d612281a3b1add14e66 # pragma: allowlist secret — public upstream commit SHA, not a credential
+          path: .trial/claudex-loop
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: "3.10"
+          cache: pip
+          cache-dependency-path: .trial/claudex-loop/requirements-dev.txt
+
+      - name: Install only declared test dependency
+        run: python -m pip install -r .trial/claudex-loop/requirements-dev.txt
+
+      - name: Validate skill metadata and local references
+        run: python .trial/claudex-loop/scripts/validate.py
+
+      - name: Run offline contract tests with fake CLIs
+        run: python -m unittest discover -s .trial/claudex-loop/tests -v
+
+      - name: Confirm core repository has no whitespace errors
+        run: git diff --check
