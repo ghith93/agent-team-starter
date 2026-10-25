@@ -11,6 +11,7 @@ from typing import Any
 from .router import FreeFirstRouter, ModelResult
 
 
+MAX_TASK_CHARS = 12000
 MAX_STAGE_OUTPUT_CHARS = 30000
 
 
@@ -78,8 +79,8 @@ def run_team(task: str, router: FreeFirstRouter | None = None,
              telemetry_path: str | Path | None = None) -> dict:
     if not isinstance(task, str) or not task.strip():
         raise ValueError("Task must be a non-empty string.")
-    if len(task) > 12000:
-        raise ValueError("Task is too long (maximum 12000 characters).")
+    if len(task) > MAX_TASK_CHARS:
+        raise ValueError(f"Task is too long (maximum {MAX_TASK_CHARS} characters).")
     router = router or FreeFirstRouter()
     run_id = str(uuid.uuid4())
     run_started = time.monotonic()
