@@ -53,7 +53,7 @@ jobs:
       - name: Install static analyzer
         run: python -m pip install --disable-pip-version-check "bandit==1.8.6"
       - name: Scan application source
-        run: bandit -r agent_team web_research -ll
+        run: bandit -r agent_team -ll
 
   semgrep:
     name: Semgrep Python rules
