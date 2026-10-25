@@ -46,6 +46,28 @@ python -m agent_team.cli --task-file task.txt --telemetry logs/events.jsonl
 
 No keys means no provider requests. OpenRouter accepts only `openrouter/free` or model IDs ending in `:free`. A free label is not a guarantee of uptime, quota, or absence of ancillary costs. `--check-config` does not test credentials or billing.
 
+## Durable queue and supervised Linux runtime (opt-in)
+
+The local SQLite queue can persist tasks across process restarts. Enqueueing does not call a model; executing queued work can call configured providers and may consume quota or incur costs.
+
+```bash
+# Persist a non-sensitive task without a provider request
+python -m agent_team.cli --queue-db "$HOME/.agent-team/queue.sqlite3" --enqueue "Summarize public release notes"
+# Execute one queued task
+python -m agent_team.cli --queue-db "$HOME/.agent-team/queue.sqlite3" --run-next
+# Run a continuous local polling worker (Ctrl-C to stop)
+python -m agent_team.cli --queue-db "$HOME/.agent-team/queue.sqlite3" --worker
+# Inspect health and create/restore verified backups
+python -m agent_team.queue_admin status --database "$HOME/.agent-team/queue.sqlite3"
+```
+
+Operational references:
+- [Durable queue runbook](docs/DURABLE_QUEUE_RUNBOOK.md)
+- [Queue health, backup and restore](docs/QUEUE_HEALTH_BACKUP_RUNBOOK.md)
+- [Hardened systemd worker and daily backup timer template](docs/SYSTEMD_DEPLOYMENT_RUNBOOK.md)
+
+The systemd files are templates and are not automatically installed or running. SQLite stores task text in plaintext; never enqueue credentials, private customer data, or confidential prompts. Backups also contain task text. A persistent worker requires a host you control, protected provider credentials, monitoring, and tested recovery. A lease cannot guarantee exactly-once external provider calls after a crash.
+
 ## Result contract
 Successful `run_team()` results include `ok`, `run_id`, `task`, `final`, `plan`, `draft`, `review`, `trace`, `total_duration_ms`, and a limitation note. `final` is the draft, not a merged rewrite by the reviewer. Review is model-generated and is not proof of correctness. On a stage failure, `TeamExecutionError` exposes the failed stage, successful prior outputs, and trace.
 

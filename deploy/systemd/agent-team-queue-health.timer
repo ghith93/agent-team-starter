@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Agent Team queue health checks every five minutes
+
+[Timer]
+OnCalendar=*-*-* *:0/5:00
+RandomizedDelaySec=30s
+Persistent=true
+Unit=agent-team-queue-health.service
+
+[Install]
+WantedBy=timers.target

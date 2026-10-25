@@ -29,3 +29,10 @@ jobs:
         run: python run_tests.py
       - name: Compile Python sources
         run: python -m compileall -q agent_team evaluations tests
+      - name: Validate deployment shell scripts
+        run: |
+          bash -n deploy/systemd/backup-queue.sh
+          bash -n deploy/systemd/check-queue-health.sh
+          bash -n deploy/systemd/run-queue-health-with-alert.sh
+          bash -n deploy/systemd/test-queue-restore.sh
+          bash -n deploy/systemd/preflight-deploy.sh

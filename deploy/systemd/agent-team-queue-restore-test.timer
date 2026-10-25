@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily Agent Team queue backup restore test
+
+[Timer]
+OnCalendar=daily
+RandomizedDelaySec=10m
+Persistent=true
+Unit=agent-team-queue-restore-test.service
+
+[Install]
+WantedBy=timers.target
