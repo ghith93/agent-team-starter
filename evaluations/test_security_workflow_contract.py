@@ -61,7 +61,36 @@ class SecurityWorkflowContractTests(unittest.TestCase):
         self.assertNotRegex(self.text, r"uses:\s+actions/(?:checkout|setup-python|upload-artifact)@v\d+")
         self.assertNotRegex(self.text, r"uses:\s+gitleaks/gitleaks-action@v\d+")
 
-    def test_all_workflows_have_explicit_read_only_permissions(self):
+    @staticmethod
+    def _permission_blocks(source):
+        """Return workflow/job permission maps without requiring a YAML package."""
+        lines = source.splitlines()
+        blocks = []
+        for index, line in enumerate(lines):
+            match = re.match(r"^(\s*)permissions:\s*(.*?)\s*(?:#.*)?$", line)
+            if not match:
+                continue
+            indent = len(match.group(1))
+            inline = match.group(2).strip()
+            if inline:
+                blocks.append([("<inline>", inline)])
+                continue
+            entries = []
+            for child in lines[index + 1:]:
+                if not child.strip() or child.lstrip().startswith("#"):
+                    continue
+                child_indent = len(child) - len(child.lstrip())
+                if child_indent <= indent:
+                    break
+                if child_indent != indent + 2:
+                    continue
+                entry = re.match(r"^\s*([a-z-]+):\s*([^\s#]+)", child)
+                if entry:
+                    entries.append((entry.group(1), entry.group(2)))
+            blocks.append(entries)
+        return blocks
+
+    def test_all_workflows_and_job_permissions_are_read_only(self):
         workflows = sorted(WORKFLOWS_DIR.glob("*.yml")) + sorted(WORKFLOWS_DIR.glob("*.yaml"))
         self.assertTrue(workflows, "expected workflow files to audit")
         for path in workflows:
@@ -72,6 +101,26 @@ class SecurityWorkflowContractTests(unittest.TestCase):
                     source,
                     r"(?m)^permissions:\n(?:  [^\n]*\n)*  contents: read(?:\n|$)",
                     "workflow must declare top-level contents: read permissions",
+                )
+                for block_index, entries in enumerate(self._permission_blocks(source)):
+                    with self.subTest(workflow=path.name, permission_block=block_index):
+                        for permission, level in entries:
+                            self.assertIn(
+                                level,
+                                ("read", "none"),
+                                f"{permission} permission must not grant write access",
+                            )
+
+    def test_permission_contract_rejects_write_scopes(self):
+        fixtures = (
+            "permissions:\n  contents: read\n  actions: write\n",
+            "permissions:\n  contents: read\njobs:\n  test:\n    permissions:\n      pull-requests: write\n",
+            "permissions: write-all\n",
+        )
+        for source in fixtures:
+            with self.subTest(source=source):
+                self.assertTrue(
+                    any(level not in ("read", "none") for block in self._permission_blocks(source) for _, level in block)
                 )
 
     def test_all_external_actions_are_pinned_to_full_commit_shas(self):
