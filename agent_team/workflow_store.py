@@ -6,6 +6,8 @@ Callers must explicitly create a store and decide what task/result data to persi
 from __future__ import annotations
 
 import json
+import os
+import stat
 from contextlib import closing
 import re
 import sqlite3
