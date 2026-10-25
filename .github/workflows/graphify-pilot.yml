@@ -2,7 +2,9 @@ name: Graphify code-only pilot
 
 on:
   workflow_dispatch:
-  pull_request:
+  push:
+    branches:
+      - main
     paths:
       - ".github/workflows/graphify-pilot.yml"
 
