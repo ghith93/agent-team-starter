@@ -12,7 +12,7 @@ runtime dependencies or triggering paid API calls.
 |---|---|---|---|
 | [REA](https://github.com/morluto/rea) | Adopt as an optional, separate research tool | Analyze applications, JavaScript/Electron bundles, websites, and binaries where inspection is authorized; document observed behavior and evidence | Keep outside the core runtime. Use its official install/setup flow in a controlled analysis environment. Do not add it as a mandatory Python dependency. |
 | [Cloudflare Security Audit Skill](https://github.com/cloudflare/security-audit-skill) | Reuse methodology, not the runtime package | Coverage-led security reviews, independent validation of candidate findings, evidence-based reports | Adapt the coverage and evidence contract into `skills/security-gate/SKILL.md`; do not bulk-import the upstream workflow or claim a full audit without running its phases. |
-| [Graphify](https://github.com/Graphify-Labs/graphify) | Pilot only | Build a local graph of repository architecture and dependencies to aid code review | Run against a disposable checkout in code-only mode; keep output outside the source checkout. Adopt only if it finds useful relationships missed by current docs/tests. |
+| [Graphify](https://github.com/Graphify-Labs/graphify) | Pilot only | Build a local graph of repository architecture and dependencies to aid code review | Run against a disposable checkout in code-only mode; keep generated output inside that disposable copy and out of the real source checkout. Adopt only if it finds useful relationships missed by current docs/tests. |
 | [ai-memory](https://github.com/akitaonrails/ai-memory) | Defer installation | Cross-session task handoffs and durable project memory | Compare against existing GitHub status/decision logs first. Add only if a measured gap remains; secure its local service and bearer token. |
 | [Cindy](https://github.com/makecindy/cindy) | Do not integrate now | Desktop/browser automation research | Revisit only if computer-use automation becomes an explicit requirement; it is a separate large application and has telemetry/service considerations. |
 | [HyperFrames](https://github.com/heygen-com/hyperframes) | Separate future marketing tool | Reproducible HTML-to-video generation, potentially for product marketing | Not part of the agent-team runtime. Evaluate separately when video production is in scope. |
@@ -22,9 +22,7 @@ runtime dependencies or triggering paid API calls.
 Official repository: https://github.com/morluto/rea
 Official project site: https://rea.tools/
 License shown by the repository: MIT. Re-check the current license, official package name,
-supported Node.js versions, and package release before every new adoption. The current
-README documents Node.js 22.x (>=22.19), 24.x (>=24.11), or 26+, plus npm; setup may
-register an MCP server and write agent configuration.
+supported Node.js versions, and package release before every new adoption. The current README documents Node.js 22.x (>=22.23.4), 24.x (>=24.22.1), or 26.12.1+, plus npm; verify the exact release requirements before setup. Setup may register an MCP server and write agent configuration, and native analysis may require separately licensed tools.
 
 1. Use a dedicated, disposable analysis environment. Do not run unknown target
    applications with sensitive credentials or a privileged account.
@@ -48,31 +46,39 @@ register an MCP server and write agent configuration.
 ## Graphify pilot (zero API requirement)
 
 Official repository: https://github.com/Graphify-Labs/graphify
-The official project documents the Python package `graphifyy` and CLI `graphify`.
-Its code-only graph extraction uses local parsing and does not require an API key.
+The official project documents the Python package `graphifyy` (double-y) and CLI `graphify`.
+The latest release checked for this plan is v0.9.95 (2026-10-23), under Apache-2.0;
+re-check the release/license before upgrades. Its code-only graph extraction uses local
+parsing and does not require an API key.
 Do not run `graphify install` during the pilot because it writes assistant integration
 configuration; only a separate disposable environment should receive such changes.
 
 1. Create a disposable checkout of the exact commit being reviewed.
 2. Install the official package into an isolated tool environment only after checking
    the current license, release, and dependency metadata.
-3. Run code-only extraction against the disposable checkout and direct generated
-   files to a separate scratch/output directory; do not include private documents,
-   secrets, or unneeded assets.
+3. Run code-only extraction from inside the disposable checkout. Graphify writes its
+   default `graphify-out/` directory there; never run this in the working source tree.
+   The disposable copy and its output are removed after the pilot. Do not include
+   unneeded assets or secrets.
 4. Compare the graph report against existing module structure, call paths, and tests.
    Record only concrete relationships or review questions it surfaced that were
    otherwise missed. Treat inferred edges as hypotheses, not source facts.
 5. Remove the disposable checkout and outputs after recording non-sensitive results.
    Keep Graphify optional unless the pilot produces measurable review value.
 
-Example command shape after installation (replace the output path with a new,
-empty scratch directory outside the checkout):
+Example command shape after installation (run only after entering a disposable copy):
 
 ```bash
-graphify extract /path/to/disposable-checkout --code-only --out /path/to/scratch-output
+cd /path/to/disposable-checkout
+graphify extract . --code-only
+# Output is created under this disposable copy's graphify-out/ directory.
 ```
 
-This command has not yet been run in the current environment.
+The workflow `.github/workflows/graphify-pilot.yml` runs this pilot in an ephemeral
+GitHub-hosted runner, on demand or when that workflow itself is changed. It installs a
+pinned Graphify release, makes a tracked-files-only disposable copy, disables LLM
+backends, and stores the graph artifact for a short retention period. The pilot is
+analysis-only and does not register Graphify with any assistant.
 
 ## Legal and safety boundary
 
@@ -104,8 +110,10 @@ alternative instead.
    using an authorized target and reviewing every setup change.
 3. Use the expanded offline tooling inventory to check prerequisites without installing
    anything: `python -m agent_team.tooling_audit --json`.
-4. Run the Graphify code-only pilot in an isolated environment; record whether it
-   identifies architecture relationships that existing docs and tests miss.
-5. Continue to use `python run_tests.py` and
+4. Review `docs/GRAPHIFY_PILOT_RESULTS_2026-10-25.md`; the first zero-API run produced
+   492 nodes and 806 edges, but workflow YAML created noisy communities.
+5. The pilot workflow now excludes `.github/**` in its disposable copy; compare the next
+   graph with the baseline before deciding whether Graphify adds repeatable value.
+6. Continue to use `python run_tests.py` and
    `python evaluations/offline_benchmark.py` for local/offline validation.
    Do not infer production readiness from those checks alone.
