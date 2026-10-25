@@ -18,7 +18,7 @@ class ToolingAuditTests(unittest.TestCase):
         report = collect_inventory()
         for name in ("node", "npm", "npx", "rea-agents", "graphify", "osv-scanner"):
             self.assertIn(name, report["commands"])
-        self.assertIn("No installs", " ".join(report["limitations"]) if False else "No installs")
+        self.assertTrue(any("does not install" in item for item in report["limitations"]))
         self.assertEqual(report["network_calls"], 0)
         self.assertEqual(report["installations_performed"], 0)
 
