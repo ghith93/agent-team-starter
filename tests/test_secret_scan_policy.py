@@ -57,7 +57,7 @@ class SecretScanExclusionPolicyTests(unittest.TestCase):
     def test_isolated_security_audit_actions_are_immutable(self):
         audit_workflow = ROOT / ".github" / "workflows" / "security-audit-isolated.yml"
         source = audit_workflow.read_text(encoding="utf-8")
-        action_refs = re.findall(r"^\s*uses:\s*([^\s#]+)", source, flags=re.MULTILINE)
+        action_refs = re.findall(r"^\s*(?:-\s*)?uses:\s*([^\s#]+)", source, flags=re.MULTILINE)
         self.assertTrue(action_refs, "expected third-party actions in isolated security workflow")
         for ref in action_refs:
             with self.subTest(action=ref):
