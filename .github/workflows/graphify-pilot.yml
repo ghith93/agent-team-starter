@@ -50,7 +50,7 @@ jobs:
           cd "$RUNNER_TEMP/graphify-target"
           graphify --version
           graphify extract . --code-only
-          graphify cluster-only .
+          graphify cluster-only . --no-label
           test -s graphify-out/graph.json
           test -s graphify-out/GRAPH_REPORT.md
       - name: Summarize pilot result
