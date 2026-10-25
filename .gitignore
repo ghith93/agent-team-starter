@@ -3,3 +3,29 @@ __pycache__/
 *.py[cod]
 .ipynb_checkpoints/
 .pytest_cache/
+
+# Local environments and credentials
+.env.*
+!.env.example
+.venv/
+venv/
+ENV/
+
+# Local runtime output and logs
+*.log
+logs/
+telemetry/
+*.jsonl
+
+# Test, type-check, and coverage output
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.tox/
+
+# Editor and operating-system files
+.DS_Store
+.vscode/
+.idea/

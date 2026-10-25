@@ -1,3 +1,10 @@
+## 2026-10-25 — Operational baseline re-applied to current main
+
+- Re-applied `STATE.md`, `ROADMAP.md`, `RUNBOOK.md`, and `LICENSE_PENDING.md` on a clean branch based on the current `main` commit.
+- Preserved the narrowed secret-scanner exclusions merged in PR #26.
+- Confirmed the documentation does not claim a live 24/7 deployment, independent backup, or verified alerting.
+- No live provider calls, deployment, or spending performed.
+
 # Changelog
 
 ## v0.9.1-rc16 — bounded stage outputs and safer failure messages
