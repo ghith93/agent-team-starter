@@ -1,3 +1,10 @@
+## 2026-10-25 — Durable workflow primitives merged
+
+- Merged PR #28 with opt-in SQLite queue state, worker leases, bounded retries, stale-worker fencing, local memory retrieval, queue CLI modes, health/backup/restore helpers, and systemd templates.
+- Added queue/memory/CLI/deployment-preflight/backup-restore regression coverage and shell syntax validation.
+- All required CI and security checks passed on the reviewed PR head: offline regression/evaluator, YAML validation, Gitleaks, Bandit, pip-audit, Semgrep, detect-secrets, isolated audits, and promotion readiness.
+- Runtime templates remain opt-in and are not installed or running. No live model calls, paid quota, host provisioning, or deployment performed.
+
 ## 2026-10-25 — Operational baseline re-applied to current main
 
 - Re-applied `STATE.md`, `ROADMAP.md`, `RUNBOOK.md`, and `LICENSE_PENDING.md` on a clean branch based on the current `main` commit.
