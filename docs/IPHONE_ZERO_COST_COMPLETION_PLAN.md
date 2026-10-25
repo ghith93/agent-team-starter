@@ -65,3 +65,33 @@ A checklist or passing CI is not execution evidence. Once a persistent Linux hos
 ## No-cost operating rule
 
 Prefer GitHub Actions for finite CI checks, not as a substitute for a persistent worker. Keep provider calls disabled by default. Do not put private task data or secrets into the public repository, SQLite task payloads, CI logs, or artifacts. Never report a checklist as complete until its evidence exists.
+
+## Newly researched hosting path — Hostless free allowance (2026-10-26)
+
+Official references:
+- Platform overview and free allowance: https://docs.hostless.cloud/overview
+- Current resource limits: https://docs.hostless.cloud/plans/limits
+- Product entry point: https://web.hostless.cloud/
+
+The official overview currently advertises an always-on app and worker with no credit card, within a shared account allowance of 0.5 vCPU, 1 GiB RAM, and 512 MiB managed-database storage. It supports Git-based deployment. This is a candidate to investigate, not proof of suitability or a guarantee of uninterrupted service.
+
+### Critical compatibility and cost safeguards
+
+- **Do not deploy the current SQLite-backed durable queue as production state on an assumed-persistent local filesystem.** The free allowance describes managed database storage, not a guarantee that application-local SQLite files survive redeploys or host replacement.
+- Before production, either (A) migrate queue, leases, retries, idempotency, and recovery semantics to a managed database such as PostgreSQL and add integration/concurrency/restart tests, or (B) obtain and verify explicit persistent-volume guarantees for the chosen resource. Do not silently swap databases or weaken queue guarantees.
+- The free CPU, memory, and database allowance is shared across account resources. The provider documents usage-based charges above the allowance. Because the operator cannot pay, **do not attach a payment card, create oversized resources, or enable paid capacity**. Confirm in the account UI that the intended resource fits the no-card free allowance before creation. A spending limit should not be treated as a guaranteed invoice cap.
+- Hostless is a third-party provider and a new dependency. Review its terms, privacy, security, account recovery, and operational status before storing any task content. Begin with synthetic, non-sensitive tasks only.
+- Connecting the repository and creating a hosted resource requires the account owner to sign in and authorize GitHub access. Repository access alone does not grant this account-level permission, so no account/resource has been created by this plan.
+
+### Execution sequence with no laptop and no budget
+
+1. Keep the currently passing offline CI as the safe baseline; use GitHub's mobile web UI and feature branches for changes.
+2. In the provider's UI, inspect the free entitlement and no-card path only; do not create a resource if the screen implies paid capacity or asks for a payment method.
+3. Implement and review the persistence migration on a feature branch before connecting any production queue to the host. Keep SQLite tests and add backend parity, concurrency, retry, idempotency, migration, and restore tests.
+4. Deploy a disposable synthetic-task smoke test first. Confirm logs, restart behavior, and resource consumption. Do not send secrets, private prompts, or customer data.
+5. Only call the service production-ready after queue recovery and an independent backup/restore test pass. If the free allowance is insufficient, remain in offline/test mode rather than incur costs.
+
+### Honest interim capability
+
+Until a free host and compatible durable storage are actually provisioned and tested, the repository can still run finite CI tests and scheduled, bounded maintenance checks on GitHub Actions. These are not a continuously running worker and must not be represented as 24/7 runtime.
+
