@@ -12,7 +12,7 @@ import time
 from pathlib import Path
 from .memory_store import MemoryStore
 from .router import FreeFirstRouter, ProviderError
-from .team import TeamExecutionError, run_team
+from .team import MAX_TASK_CHARS, TeamExecutionError, run_team
 from .workflow_store import WorkflowStateError, WorkflowStore
 
 
@@ -89,12 +89,21 @@ def main(argv=None):
         return 2
     if args.task_file:
         try:
-            task = args.task_file.read_text(encoding="utf-8")
-        except OSError as exc:
+            # Bound bytes before decoding: UTF-8 characters occupy at most four bytes.
+            with args.task_file.open("rb") as handle:
+                raw_task = handle.read(MAX_TASK_CHARS * 4 + 1)
+            if len(raw_task) > MAX_TASK_CHARS * 4:
+                print(f"Task file is too long (maximum {MAX_TASK_CHARS} characters).", file=sys.stderr)
+                return 2
+            task = raw_task.decode("utf-8", errors="strict")
+        except (OSError, UnicodeDecodeError) as exc:
             print(f"Could not read task file: {type(exc).__name__}", file=sys.stderr)
             return 2
     else:
         task = " ".join(args.task)
+    if len(task) > MAX_TASK_CHARS:
+        print(f"Task is too long (maximum {MAX_TASK_CHARS} characters).", file=sys.stderr)
+        return 2
     if (args.run_next or args.worker) and task.strip():
         print("Queue workers take tasks from the queue; do not pass task text or --task-file.", file=sys.stderr)
         return 2
