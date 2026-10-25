@@ -67,7 +67,14 @@ jobs:
           set -euo pipefail
           canary_dir="$(mktemp -d)"
           trap 'rm -rf "$canary_dir"' EXIT
-          printf '%s\n' 'aws_access_key_id = AKIAIOSFODNN7EXAMPLE' > "$canary_dir/canary.py"
+          python - "$canary_dir/canary.py" <<'PYFIXTURE'
+          import sys
+          # Construct an inert AWS-shaped canary at runtime so scanners do not
+          # mistake the test source itself for a committed credential.
+          canary = "AKIA" + "IOSFODNN7EXAMPLE"
+          with open(sys.argv[1], "w", encoding="utf-8") as fixture:
+              fixture.write(f"aws_access_key_id = {canary}\\n")
+          PYFIXTURE
           (
             cd "$canary_dir"
             detect-secrets scan --all-files > "$RUNNER_TEMP/detect-secrets-canary.json"
