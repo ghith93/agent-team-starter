@@ -12,9 +12,11 @@ import sys
 from datetime import datetime, timezone
 
 COMMANDS = (
-    "git", "pytest", "ruff", "semgrep", "ast-grep", "pip-audit", "bandit",
-    "gitleaks", "detect-secrets", "promptfoo", "deepeval", "mcp-scan",
-    "mcp-inspector", "ghidra", "radare2", "frida", "mitmproxy",
+    "git", "node", "npm", "npx", "pytest", "ruff", "semgrep", "ast-grep",
+    "pip-audit", "osv-scanner", "bandit", "gitleaks", "detect-secrets",
+    "promptfoo", "deepeval", "mcp-scan", "mcp-inspector",
+    "rea-agents", "graphify", "hyperframes", "ghidra", "radare2", "frida",
+    "mitmproxy",
 )
 MODULES = ("pytest", "requests", "hypothesis", "ruff", "bandit", "pip_audit", "deepeval", "langgraph")
 
@@ -34,6 +36,8 @@ def collect_inventory() -> dict:
         "limitations": [
             "Command discovery does not establish that a tool is correctly configured or safe.",
             "A missing command/module may still be available in another environment.",
+            "Node/npm/npx discovery does not install or validate npm packages.",
+            "REA, Graphify, and HyperFrames command names are hints only; package-specific setup may differ.",
             "No vulnerability database or remote repository was queried.",
         ],
     }

@@ -14,11 +14,19 @@ class ToolingAuditTests(unittest.TestCase):
         self.assertEqual(set(report["commands"].values()), {False})
         self.assertEqual(set(report["python_modules"].values()), {False})
 
+    def test_inventory_covers_open_source_pilot_prerequisites(self):
+        report = collect_inventory()
+        for name in ("node", "npm", "npx", "rea-agents", "graphify", "osv-scanner"):
+            self.assertIn(name, report["commands"])
+        self.assertTrue(any("does not install" in item for item in report["limitations"]))
+        self.assertEqual(report["network_calls"], 0)
+        self.assertEqual(report["installations_performed"], 0)
+
     def test_inventory_schema_contains_limitations(self):
         report = collect_inventory()
         self.assertEqual(report["execution_mode"], "local_discovery_only")
         self.assertIn("limitations", report)
-        self.assertGreaterEqual(len(report["limitations"]), 3)
+        self.assertGreaterEqual(len(report["limitations"]), 4)
 
 
 if __name__ == "__main__":
