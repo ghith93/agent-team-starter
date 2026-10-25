@@ -2,12 +2,31 @@
 from __future__ import annotations
 
 import json
+import os
+import stat
 import sqlite3
 import time
 import uuid
 from contextlib import closing
 from pathlib import Path
 from typing import Any
+
+
+def _prepare_private_database(path: Path) -> None:
+    """Create or tighten a SQLite file before opening it; reject symlinks/non-files."""
+    flags = os.O_CREAT | os.O_RDWR
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    descriptor = os.open(path, flags, 0o600)
+    try:
+        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+            raise ValueError("SQLite database path must be a regular file, not a symlink or special file.")
+        if hasattr(os, "fchmod"):
+            os.fchmod(descriptor, 0o600)
+        else:
+            os.chmod(path, 0o600)
+    finally:
+        os.close(descriptor)
 
 
 class MemoryStore:
@@ -24,6 +43,7 @@ class MemoryStore:
             raise ValueError("Use a file-backed database so knowledge survives reconnects.")
         self.path = Path(database_path).expanduser()
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        _prepare_private_database(self.path)
         with closing(self._connect()) as connection:
             connection.execute("""
                 CREATE TABLE IF NOT EXISTS memories (
