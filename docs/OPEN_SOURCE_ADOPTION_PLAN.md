@@ -22,8 +22,7 @@ runtime dependencies or triggering paid API calls.
 Official repository: https://github.com/morluto/rea
 Official project site: https://rea.tools/
 License shown by the repository: MIT. Re-check the current license, official package name,
-supported Node.js versions, and package release before every new adoption. The current
-current README documents Node.js 22.x (>=22.23.4), 24.x (>=24.22.1), or 26.12.1+, plus npm; verify the exact release requirements before setup. Setup may register an MCP server and write agent configuration, and native analysis may require separately licensed tools.
+supported Node.js versions, and package release before every new adoption. The current README documents Node.js 22.x (>=22.23.4), 24.x (>=24.22.1), or 26.12.1+, plus npm; verify the exact release requirements before setup. Setup may register an MCP server and write agent configuration, and native analysis may require separately licensed tools.
 
 1. Use a dedicated, disposable analysis environment. Do not run unknown target
    applications with sensitive credentials or a privileged account.
