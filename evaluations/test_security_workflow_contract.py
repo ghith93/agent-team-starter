@@ -9,6 +9,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github" / "workflows" / "security.yml"
+WORKFLOWS_DIR = ROOT / ".github" / "workflows"
 
 
 class SecurityWorkflowContractTests(unittest.TestCase):
@@ -40,8 +41,8 @@ class SecurityWorkflowContractTests(unittest.TestCase):
         ):
             with self.subTest(marker=marker):
                 self.assertIn(marker, self.text)
-        self.assertIn("test \"$BANDIT_OUTCOME\" = success", self.text)
-        self.assertIn("test \"$DETECT_SECRETS_GATE_OUTCOME\" = success", self.text)
+        self.assertIn('test "$BANDIT_OUTCOME" = success', self.text)
+        self.assertIn('test "$DETECT_SECRETS_GATE_OUTCOME" = success', self.text)
 
     def test_reports_are_uploaded_even_after_failure(self):
         self.assertGreaterEqual(self.text.count("if: always()"), 3)
@@ -59,6 +60,47 @@ class SecurityWorkflowContractTests(unittest.TestCase):
         self.assertIn("actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9", self.text)
         self.assertNotRegex(self.text, r"uses:\s+actions/(?:checkout|setup-python|upload-artifact)@v\d+")
         self.assertNotRegex(self.text, r"uses:\s+gitleaks/gitleaks-action@v\d+")
+
+    def test_all_workflows_have_explicit_read_only_permissions(self):
+        workflows = sorted(WORKFLOWS_DIR.glob("*.yml")) + sorted(WORKFLOWS_DIR.glob("*.yaml"))
+        self.assertTrue(workflows, "expected workflow files to audit")
+        for path in workflows:
+            with self.subTest(workflow=path.name):
+                source = path.read_text(encoding="utf-8")
+                self.assertNotIn("pull_request_target:", source)
+                self.assertRegex(
+                    source,
+                    r"(?m)^permissions:\n(?:  [^\n]*\n)*  contents: read(?:\n|$)",
+                    "workflow must declare top-level contents: read permissions",
+                )
+
+    def test_all_external_actions_are_pinned_to_full_commit_shas(self):
+        workflows = sorted(WORKFLOWS_DIR.glob("*.yml")) + sorted(WORKFLOWS_DIR.glob("*.yaml"))
+        action_refs = []
+        for path in workflows:
+            source = path.read_text(encoding="utf-8")
+            action_refs.extend(
+                (path.name, ref)
+                for ref in re.findall(r"(?m)^\s*(?:-\s*)?uses:\s*([^\s#]+)", source)
+                if not ref.startswith("./")
+            )
+        self.assertTrue(action_refs, "expected external action references to audit")
+        for workflow, ref in action_refs:
+            with self.subTest(workflow=workflow, action=ref):
+                self.assertRegex(
+                    ref,
+                    r"^[^@]+@[0-9a-f]{40}$",
+                    "external GitHub Actions must be pinned to immutable full commit SHAs",
+                )
+
+    def test_live_provider_workflow_is_manual_and_explicitly_gated(self):
+        source = (WORKFLOWS_DIR / "openrouter-smoke.yml").read_text(encoding="utf-8")
+        trigger_block = source.split("\npermissions:", 1)[0]
+        self.assertIn("workflow_dispatch:", trigger_block)
+        self.assertNotRegex(trigger_block, r"(?m)^  (?:push|pull_request|schedule):")
+        self.assertIn("confirm_live_provider_calls:", trigger_block)
+        self.assertIn("default: false", trigger_block)
+        self.assertIn("if: inputs.confirm_live_provider_calls == true", source)
 
 
 if __name__ == "__main__":
