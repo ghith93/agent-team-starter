@@ -72,7 +72,7 @@ class BenchmarkScoreTests(unittest.TestCase):
     def test_missing_required_column_is_rejected(self):
         handle = tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", suffix=".csv", delete=False)
         self.addCleanup(lambda: Path(handle.name).unlink(missing_ok=True))
-        handle.write("task_id,pass_0_or_1\\nTASK-01,1\\n")
+        handle.write("task_id,pass_0_or_1\nTASK-01,1\n")
         handle.close()
         with self.assertRaisesRegex(ValueError, "Missing required columns"):
             score_csv(handle.name)
@@ -80,7 +80,7 @@ class BenchmarkScoreTests(unittest.TestCase):
     def test_empty_csv_data_is_rejected(self):
         handle = tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", suffix=".csv", delete=False)
         self.addCleanup(lambda: Path(handle.name).unlink(missing_ok=True))
-        handle.write(",".join(REQUIRED) + "\\n")
+        handle.write(",".join(REQUIRED) + "\n")
         handle.close()
         with self.assertRaisesRegex(ValueError, "No benchmark rows"):
             score_csv(handle.name)
