@@ -1,5 +1,7 @@
 """Regression tests for SQLite connection lifecycle in WorkflowStore."""
+import os
 import sqlite3
+import stat
 import tempfile
 import unittest
 from pathlib import Path
@@ -9,6 +11,14 @@ from agent_team.workflow_store import WorkflowStore
 
 
 class WorkflowStoreConnectionTests(unittest.TestCase):
+    def test_database_permissions_are_owner_only(self):
+        if os.name != "posix":
+            self.skipTest("POSIX file permission semantics required")
+        with tempfile.TemporaryDirectory() as tempdir:
+            database = Path(tempdir) / "private.sqlite3"
+            WorkflowStore(database)
+            self.assertEqual(stat.S_IMODE(database.stat().st_mode), 0o600)
+
     def test_public_operations_close_every_connection(self):
         with tempfile.TemporaryDirectory() as tempdir:
             store = WorkflowStore(Path(tempdir) / "queue.sqlite3")
