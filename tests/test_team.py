@@ -2,7 +2,7 @@ import unittest
 from types import SimpleNamespace
 
 from agent_team.router import ProviderError
-from agent_team.team import MAX_STAGE_OUTPUT_CHARS, TeamExecutionError, run_team
+from agent_team.team import MAX_STAGE_OUTPUT_CHARS, MAX_TASK_CHARS, TeamExecutionError, run_team
 
 
 class FakeRouter:
@@ -46,6 +46,12 @@ class TeamTests(unittest.TestCase):
         self.assertIn("plan", error.completed)
         self.assertNotIn("draft", error.completed)
         self.assertEqual(len(router.calls), 2)
+
+    def test_oversized_task_is_rejected_before_router_execution(self):
+        router = FakeRouter()
+        with self.assertRaisesRegex(ValueError, "maximum 12000 characters"):
+            run_team("x" * (MAX_TASK_CHARS + 1), router)
+        self.assertEqual(router.calls, [])
 
     def test_empty_output_stops_at_stage(self):
         class EmptyRouter:
