@@ -40,7 +40,7 @@ class CliTests(unittest.TestCase):
     def test_invalid_utf8_task_file_is_rejected_cleanly(self):
         out = io.StringIO()
         with tempfile.NamedTemporaryFile(mode="wb") as f:
-            f.write(b"valid prefix\\xffinvalid")
+            f.write(b"valid prefix\xffinvalid")
             f.flush()
             with patch("agent_team.cli.run_team") as run_team, contextlib.redirect_stderr(out):
                 code = main(["--task-file", f.name])
