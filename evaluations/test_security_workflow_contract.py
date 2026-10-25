@@ -58,8 +58,8 @@ class SecurityWorkflowContractTests(unittest.TestCase):
         self.assertIn("actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1", self.text)
         self.assertIn("actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0", self.text)
         self.assertIn("actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9", self.text)
-        self.assertNotRegex(self.text, r"uses:\\s+actions/(?:checkout|setup-python|upload-artifact)@v\\d+")
-        self.assertNotRegex(self.text, r"uses:\\s+gitleaks/gitleaks-action@v\\d+")
+        self.assertNotRegex(self.text, r"uses:\s+actions/(?:checkout|setup-python|upload-artifact)@v\d+")
+        self.assertNotRegex(self.text, r"uses:\s+gitleaks/gitleaks-action@v\d+")
 
     def test_all_workflows_have_explicit_read_only_permissions(self):
         workflows = sorted(WORKFLOWS_DIR.glob("*.yml")) + sorted(WORKFLOWS_DIR.glob("*.yaml"))
@@ -81,7 +81,7 @@ class SecurityWorkflowContractTests(unittest.TestCase):
             source = path.read_text(encoding="utf-8")
             action_refs.extend(
                 (path.name, ref)
-                for ref in re.findall(r"(?m)^\\s*(?:-\\s*)?uses:\\s*([^\\s#]+)", source)
+                for ref in re.findall(r"(?m)^\s*(?:-\s*)?uses:\s*([^\s#]+)", source)
                 if not ref.startswith("./")
             )
         self.assertTrue(action_refs, "expected external action references to audit")
