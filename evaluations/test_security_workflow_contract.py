@@ -76,10 +76,10 @@ class SecurityWorkflowContractTests(unittest.TestCase):
             with self.subTest(workflow=path.name):
                 self.assertRegex(
                     content,
-                    r"(?m)^permissions:\\n(?:  [a-z-]+: (?:read|write|none)\\n?)+",
+                    r"(?m)^permissions:\n(?:  [a-z-]+: (?:read|write|none)\n?)+",
                     "Every workflow must explicitly declare least-privilege permissions",
                 )
-                action_refs = re.findall(r"(?m)^\\s*uses:\\s*([^\\s#]+)", content)
+                action_refs = re.findall(r"(?m)^\s*uses:\s*([^\s#]+)", content)
                 for action_ref in action_refs:
                     self.assertRegex(
                         action_ref,
