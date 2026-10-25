@@ -13,7 +13,7 @@ This roadmap prioritizes evidence, reversible changes, and free/open-source opti
 - [x] Enable and verify the active `main` ruleset: PR required, six correctly named checks required, zero required approvals, force pushes blocked; verified 2026-10-25.
 - [ ] Verify Secret Scanning and Push Protection availability and state.
 - [x] Keep Gitleaks scanning on PRs and run history-aware scans in CI.
-- [ ] Add a synthetic canary test proving the secret scanner fails closed without committing a real credential.
+- [x] Add and run a runtime-generated inert synthetic canary; `detect-secrets` detects it and the shared gate fails closed when findings exist (PR #45, merged as `8de5cd214f749951ab487af2923a3330e76f129e`).
 - [x] Enforce read-only workflow/job permissions and full-SHA pins for external GitHub Actions with regression checks; latest main checks observed 2026-10-26.
 - [ ] Decide on a root license after confirming intended reuse/distribution policy.
 
@@ -43,7 +43,7 @@ This roadmap prioritizes evidence, reversible changes, and free/open-source opti
 - [ ] Keep optional tools isolated, tested, and removable.
 
 ## Phase F — Operational acceptance
-- [x] On main commit `0f46b28ae6b6c624fb54549b2ebbf48474529aa3`, `tests`, YAML validation, Gitleaks, and offline regression/evaluator checks were observed passing; aggregate Python SAST/secrets/dependency audit was still in progress at last check. Recheck the exact commit before claiming complete CI success.
+- [x] All five post-merge checks passed on main commit `8de5cd214f749951ab487af2923a3330e76f129e`: `tests`, YAML validation, Gitleaks, offline regression/evaluator suite, and aggregate Python SAST/secrets/dependency audit.
 - [ ] Verify GitHub Secret Scanning and Push Protection settings; review ruleset bypass/freshness policy separately.
 - [ ] Deploy to an explicitly chosen host and verify restart/recovery behavior.
 - [ ] Test external alert delivery.
