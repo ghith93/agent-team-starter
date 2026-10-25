@@ -2,7 +2,7 @@
 Last updated: 2026-10-26
 Current phase: Phase 2 — durable workflow primitives merged; deployment acceptance remains open
 Repository: ghith93/agent-team-starter
-Current main commit at this state update: `0f46b28ae6b6c624fb54549b2ebbf48474529aa3`
+Current main commit at this state update: `8de5cd214f749951ab487af2923a3330e76f129e`
 Recovery reference: `backup/pre-audit-2026-10-23`
 
 ## Project purpose
@@ -13,17 +13,17 @@ A free-first Python multi-agent workflow (planner → executor → reviewer) wit
 - PR #27 added the operational state register, roadmap, iPhone-first runbook, `.gitignore` safeguards, and pending-license decision record.
 - PR #28 added an opt-in SQLite workflow queue with leases, bounded retries, stale-worker fencing, local memory retrieval, CLI queue modes, health/backup/restore helpers, systemd templates, and regression tests.
 - PR #28 CI passed on the reviewed head: offline regression/evaluator suite, YAML validation, Gitleaks, Bandit, pip-audit, Semgrep, detect-secrets, isolated security audits, and promotion-readiness gate.
-- PR #39 fixed required isolated-security checks for docs-only pull requests; PR #40 added a regression test for that trigger contract; PR #41 and PR #42 refreshed operational status and reconciled root state/roadmap documentation.
+- PR #39 fixed required isolated-security checks for docs-only pull requests; PR #40 added a regression test for that trigger contract; PR #41 and PR #42 refreshed operational status; PR #45 added a synthetic secret-scanner canary and shared fail-closed gate.
 
 ## Verified
-- The repository is public and `main` now points to `0f46b28ae6b6c624fb54549b2ebbf48474529aa3` after PR #42 merged.
+- The repository is public and `main` now points to `8de5cd214f749951ab487af2923a3330e76f129e` after PR #45 merged.
 - The active `main` ruleset (`25836352`) requires pull requests and six checks: `tests`, `Offline regression and evaluator suites`, `Python static security analysis`, `Dependency vulnerability audit`, `Gitleaks secret scan`, and `Parse workflow and Dependabot YAML`. Required approvals are set to zero; force pushes are blocked. `strict=false` means the PR branch need not be up to date before merge.
 - PR #39 merged a fix so the isolated security workflow reports required checks on docs-only pull requests.
 - Python project sources live under `agent_team/`.
-- On `0f46b28ae6b6c624fb54549b2ebbf48474529aa3`, the observed `tests`, YAML validation, Gitleaks, and offline regression/evaluator checks passed; the aggregate Python SAST/secrets/dependency audit was still in progress at the last observation. Do not mark all post-merge checks complete until that job finishes.
+- On `8de5cd214f749951ab487af2923a3330e76f129e`, the post-merge `tests`, YAML validation, Gitleaks, offline regression/evaluator, and Python SAST/secrets/dependency audit checks all completed successfully. The synthetic canary was detected and the shared gate rejected its finding on PR #45 before merge.
 - `agent_team/workflow_store.py` implements durable SQLite queue state; `agent_team/memory_store.py` provides opt-in local memory retrieval.
 - Deployment and systemd files are templates only; no host has been provisioned, and no service has been installed or started.
-- The security workflow on `main` retains the narrow exclusions merged in PR #26.
+- The security workflow on `main` retains the narrow exclusions merged in PR #26. `scripts/check_detect_secrets.py` is the shared fail-closed gate used by the production scan and the synthetic canary test.
 - FreeLLMAPI integration was previously removed; do not reintroduce it without a new explicit requirement.
 
 ## Not yet verified / open risks

@@ -14,7 +14,7 @@ This addendum supplements older roadmap entries; see [verified execution status]
 
 - [ ] Review ruleset bypass actor: repository role currently has `bypass_mode=always` (tracked in issue #38).
 - [ ] Verify GitHub Secret Scanning and Push Protection settings.
-- [ ] Demonstrate an end-to-end synthetic secret-scanner canary without any real credential.
+- [x] Demonstrate an end-to-end synthetic secret-scanner canary without any real credential (PR #45; canary detection and shared fail-closed gate passed in CI).
 - [ ] Choose and validate a runtime host before claiming 24/7 operation.
 - [ ] Verify connection-time network egress policy for the trusted proxy.
 - [ ] Complete encrypted off-host backup and restore test.
@@ -24,3 +24,9 @@ This addendum supplements older roadmap entries; see [verified execution status]
 ## Non-goals unless explicitly authorized
 
 No paid/live model calls, public deployment, ad spend, customer messaging, or other external side effects.
+
+## Evidence update — 2026-10-25 21:27 UTC
+
+- PR #45 merged at `8de5cd214f749951ab487af2923a3330e76f129e`.
+- Post-merge required checks on that exact commit completed successfully, including the synthetic canary, Gitleaks, offline regression/evaluator, tests, YAML validation, and Python SAST/secrets/dependency audit.
+- The open deployment, external alerting, independent backup/restore, repository security settings, and license decisions remain open.
