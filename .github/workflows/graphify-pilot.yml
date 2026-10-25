@@ -1,0 +1,72 @@
+name: Graphify code-only pilot
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/graphify-pilot.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: graphify-pilot-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  graphify:
+    name: Analyze disposable source copy (no LLM/API)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: "3.11"
+      - name: Install pinned Graphify CLI in ephemeral runner
+        run: python -m pip install "graphifyy==0.9.95"
+      - name: Prepare disposable copy of tracked source
+        shell: bash
+        run: |
+          set -euo pipefail
+          target="$RUNNER_TEMP/graphify-target"
+          mkdir -p "$target"
+          git archive HEAD | tar -x -C "$target"
+          test -d "$target/agent_team"
+      - name: Run code-only extraction with all LLM backends disabled
+        shell: bash
+        env:
+          GRAPHIFY_BACKEND: "none"
+          GRAPHIFY_QUERY_LOG: "/dev/null"
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/graphify-target"
+          graphify --version
+          graphify extract . --code-only
+          test -s graphify-out/graph.json
+          test -s graphify-out/GRAPH_REPORT.md
+      - name: Summarize pilot result
+        shell: bash
+        run: |
+          {
+            echo "## Graphify code-only pilot"
+            echo
+            echo "- Graphify version: $(python -m pip show graphifyy | sed -n 's/^Version: //p')"
+            echo "- Mode: code-only; LLM backend disabled"
+            echo "- Target: disposable copy of tracked repository files"
+            echo "- Output: private workflow artifact, retained for 3 days"
+            echo
+            echo "### Report preview"
+            sed -n '1,100p' "$RUNNER_TEMP/graphify-target/graphify-out/GRAPH_REPORT.md"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload graph for manual review
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: graphify-code-only-pilot
+          path: |
+            ${{ runner.temp }}/graphify-target/graphify-out/GRAPH_REPORT.md
+            ${{ runner.temp }}/graphify-target/graphify-out/graph.json
+          if-no-files-found: error
+          retention-days: 3
