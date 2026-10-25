@@ -24,7 +24,7 @@ jobs:
   inspect-package:
     name: Inspect npm package without installing or executing it
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:
@@ -54,7 +54,7 @@ jobs:
           npm view "ruflo@${VERSION}" version license engines dependencies optionalDependencies peerDependencies dist.integrity dist.tarball --json > audit-output/metadata.json
           printf 'Inspected package: ruflo@%s\n' "${VERSION}" > audit-output/summary.txt
 
-      - name: Download package archive without lifecycle scripts
+      - name: Download Ruflo archive without lifecycle scripts
         env:
           VERSION: ${{ steps.package.outputs.version }}
         shell: bash
@@ -81,8 +81,69 @@ jobs:
             note: "Static metadata only; package code was not installed or executed."
           };
           fs.writeFileSync('audit-output/manifest-review.json', JSON.stringify(report, null, 2) + '\n');
+          const cli = p.dependencies?.['@claude-flow/cli'];
+          if (typeof cli !== 'string' || !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(cli)) {
+            throw new Error('Expected an exact @claude-flow/cli dependency version; refusing ambiguous dependency audit.');
+          }
+          fs.writeFileSync('audit-output/cli-version.txt', cli + '\n');
           console.log(JSON.stringify(report, null, 2));
           NODE
+
+      - name: Inspect direct CLI dependency without executing it
+        id: cli
+        shell: bash
+        run: |
+          set -euo pipefail
+          CLI_VERSION="$(cat audit-output/cli-version.txt)"
+          mkdir -p audit-output/cli
+          npm view "@claude-flow/cli@${CLI_VERSION}" version license engines dependencies optionalDependencies peerDependencies dist.integrity dist.tarball --json > audit-output/cli/metadata.json
+          npm pack --ignore-scripts --json "@claude-flow/cli@${CLI_VERSION}" --pack-destination audit-output/cli > audit-output/cli/pack.json
+          ARCHIVE="$(node -e "const fs=require('fs');const x=JSON.parse(fs.readFileSync('audit-output/cli/pack.json','utf8'));if(!x[0]?.filename)process.exit(2);process.stdout.write(x[0].filename)")"
+          tar -tzf "audit-output/cli/${ARCHIVE}" > audit-output/cli/archive-files.txt
+          tar -xOf "audit-output/cli/${ARCHIVE}" package/package.json > audit-output/cli/package.json
+          node <<'NODE'
+          const fs = require('fs');
+          const p = JSON.parse(fs.readFileSync('audit-output/cli/package.json', 'utf8'));
+          const lifecycle = Object.fromEntries(Object.entries(p.scripts || {}).filter(([k]) =>
+            /^(preinstall|install|postinstall|prepare|prepublish|prepublishOnly)$/.test(k)));
+          const bin = typeof p.bin === 'string' ? p.bin : p.bin?.ruflo || p.bin?.['claude-flow'] || Object.values(p.bin || {})[0];
+          const report = {
+            name: p.name,
+            version: p.version,
+            license: p.license,
+            engines: p.engines || {},
+            bin,
+            lifecycleScripts: lifecycle,
+            dependencyNames: Object.keys(p.dependencies || {}).sort(),
+            optionalDependencyNames: Object.keys(p.optionalDependencies || {}).sort(),
+            peerDependencyNames: Object.keys(p.peerDependencies || {}).sort(),
+            note: "Static metadata and archive listing only; dependency code was not installed or executed."
+          };
+          fs.writeFileSync('audit-output/cli/manifest-review.json', JSON.stringify(report, null, 2) + '\n');
+          if (bin && !String(bin).startsWith('/') && !String(bin).split('/').includes('..')) {
+            const path = 'package/' + bin;
+            try {
+              const entry = require('child_process').execFileSync('tar', ['-xOf', 'audit-output/cli/' + JSON.parse(fs.readFileSync('audit-output/cli/pack.json', 'utf8'))[0].filename, path], {encoding:'utf8', maxBuffer: 2*1024*1024});
+              fs.writeFileSync('audit-output/cli/entrypoint.js', entry);
+            } catch (e) {
+              fs.writeFileSync('audit-output/cli/entrypoint-review-note.txt', 'Could not extract declared CLI entrypoint using package bin metadata; inspect archive-files.txt. No code was executed.\n');
+            }
+          }
+          console.log(JSON.stringify(report, null, 2));
+          NODE
+
+      - name: Resolve dependency tree and record npm audit results without installing packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p audit-output/dependency-audit
+          CLI_VERSION="$(cat audit-output/cli-version.txt)"
+          cd audit-output/dependency-audit
+          printf '{"name":"ruflo-static-audit","private":true,"version":"1.0.0","dependencies":{"@claude-flow/cli":"%s"}}\n' "$CLI_VERSION" > package.json
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          npm audit --json > npm-audit.json || AUDIT_EXIT=$?
+          printf 'npm audit exit code: %s\n' "${AUDIT_EXIT:-0}" > npm-audit-status.txt
+          node -e "const a=require('./npm-audit.json'); console.log(JSON.stringify({metadata:a.metadata?.vulnerabilities, advisories:Object.keys(a.vulnerabilities||{}).length},null,2))" > npm-audit-summary.json
 
       - name: Upload audit evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
