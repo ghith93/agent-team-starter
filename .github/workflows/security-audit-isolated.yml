@@ -1,13 +1,10 @@
 name: Isolated security audits
 
 on:
+  # This workflow provides required checks for main; do not path-filter PRs,
+  # or documentation-only changes can leave required checks pending forever.
   pull_request:
-    paths:
-      - "agent_team/**"
-      - "evaluations/**"
-      - "tests/**"
-      - "requirements*.txt"
-      - ".github/workflows/security-audit-isolated.yml"
+    branches: [main]
   push:
     branches: [main]
     paths:
