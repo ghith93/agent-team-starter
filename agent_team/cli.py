@@ -1,4 +1,4 @@
-""""Command-line entry point with explicit offline/configuration modes."""
+"""Command-line entry point with explicit offline/configuration modes."""
 from __future__ import annotations
 import argparse
 import json
