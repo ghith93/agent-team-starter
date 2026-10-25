@@ -62,6 +62,42 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install bandit pip-audit semgrep detect-secrets
           python -m pip freeze > security-reports/scanner-versions.txt
+      - name: Verify secret scanner detects an inert synthetic canary
+        run: |
+          set -euo pipefail
+          canary_dir="$(mktemp -d)"
+          trap 'rm -rf "$canary_dir"' EXIT
+          python - "$canary_dir/canary.py" <<'PYFIXTURE'
+          import sys
+          # Construct an inert AWS-shaped canary at runtime so scanners do not
+          # mistake the test source itself for a committed credential.
+          canary = "AKIA" + "Z9Y8X7W6V5U4T3S2"
+          with open(sys.argv[1], "w", encoding="utf-8") as fixture:
+              fixture.write(f"aws_access_key_id = {canary}\n")
+          PYFIXTURE
+          (
+            cd "$canary_dir"
+            detect-secrets scan --all-files > "$RUNNER_TEMP/detect-secrets-canary.json"
+          )
+          python - "$RUNNER_TEMP/detect-secrets-canary.json" <<'PYSCAN'
+          import json
+          import subprocess
+          import sys
+
+          with open(sys.argv[1], encoding="utf-8") as report_file:
+              report = json.load(report_file)
+          findings = {path: items for path, items in report.get("results", {}).items() if items}
+          if not findings:
+              raise SystemExit("FAIL: detect-secrets did not flag the inert synthetic canary")
+          print(f"PASS: detect-secrets flagged the inert canary ({sum(map(len, findings.values()))} finding(s))")
+          gate = subprocess.run(
+              [sys.executable, "scripts/check_detect_secrets.py", sys.argv[1]],
+              capture_output=True, text=True, check=False,
+          )
+          if gate.returncode != 1:
+              raise SystemExit(f"FAIL: shared secret gate returned {gate.returncode}, expected 1\n{gate.stdout}\n{gate.stderr}")
+          print("PASS: shared production gate fails closed when findings exist")
+          PYSCAN
       - name: Bandit Python security lint
         id: bandit
         continue-on-error: true
@@ -82,16 +118,7 @@ jobs:
         id: detect_secrets_gate
         if: steps.detect_secrets.outcome == 'success'
         continue-on-error: true
-        run: |
-          python - <<'PYSCAN'
-          import json, sys
-          with open('security-reports/detect-secrets.json', encoding='utf-8') as f:
-              report = json.load(f)
-          results = report.get('results', {})
-          findings = {path: items for path, items in results.items() if items}
-          print(json.dumps({'files_with_findings': len(findings), 'findings': findings}, indent=2))
-          sys.exit(1 if findings else 0)
-          PYSCAN
+        run: python scripts/check_detect_secrets.py security-reports/detect-secrets.json
       - name: Enforce scan outcomes
         if: always()
         env:
