@@ -74,6 +74,16 @@ def _write_events(path: str | Path | None, events: list[dict]) -> None:
             handle.write(json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n")
 
 
+def _write_events_safely(path: str | Path | None, events: list[dict]) -> str | None:
+    """Write optional telemetry without allowing logging failures to mask task outcomes."""
+    try:
+        _write_events(path, events)
+    except Exception as exc:
+        # Do not include exception text or filesystem paths; either may contain secrets.
+        return f"Telemetry write failed ({type(exc).__name__})."
+    return None
+
+
 def _memory_block(memory_context: list[dict] | None) -> str:
     if memory_context is None:
         return ""
@@ -158,11 +168,14 @@ def run_team(task: str, router: FreeFirstRouter | None = None,
                 "duration_ms": round((time.monotonic() - started) * 1000, 2),
                 "error_type": type(exc).__name__,
             })
-            _write_events(telemetry_path, trace)
-            raise TeamExecutionError(stage, exc, completed.copy(), trace.copy()) from exc
+            telemetry_warning = _write_events_safely(telemetry_path, trace)
+            error = TeamExecutionError(stage, exc, completed.copy(), trace.copy())
+            if telemetry_warning:
+                error.telemetry_warning = telemetry_warning
+            raise error from exc
 
-    _write_events(telemetry_path, trace)
-    return {
+    telemetry_warning = _write_events_safely(telemetry_path, trace)
+    result = {
         "ok": True,
         "run_id": run_id,
         "task": cleaned_task,
@@ -175,3 +188,6 @@ def run_team(task: str, router: FreeFirstRouter | None = None,
         "memory_context_count": len(memory_context or []),
         "note": "Trace contains stage metadata only. Review is model-based; it does not replace tests, source verification, or human approval.",
     }
+    if telemetry_warning:
+        result["telemetry_warning"] = telemetry_warning
+    return result

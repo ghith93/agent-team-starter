@@ -5,7 +5,7 @@ completion_without_help_0_or_1, duration_seconds, estimated_cost_usd,
 security_failure_yes_no. Missing/invalid values are reported, not silently scored.
 """
 from __future__ import annotations
-import argparse, csv, json
+import argparse, csv, json, math
 from pathlib import Path
 
 REQUIRED = ("task_id", "pass_0_or_1", "correctness_0_5", "source_quality_0_5",
@@ -15,14 +15,19 @@ REQUIRED = ("task_id", "pass_0_or_1", "correctness_0_5", "source_quality_0_5",
 
 def score_csv(path: str | Path) -> dict:
     rows = []
+    seen_task_ids = set()
     with Path(path).open(newline="", encoding="utf-8-sig") as handle:
         reader = csv.DictReader(handle)
         missing = [field for field in REQUIRED if field not in (reader.fieldnames or [])]
         if missing:
             raise ValueError("Missing required columns: " + ", ".join(missing))
         for line_no, row in enumerate(reader, start=2):
-            if not (row.get("task_id") or "").strip():
+            task_id = (row.get("task_id") or "").strip()
+            if not task_id:
                 raise ValueError(f"Line {line_no}: task_id is required")
+            if task_id in seen_task_ids:
+                raise ValueError(f"Line {line_no}: duplicate task_id: {task_id}")
+            seen_task_ids.add(task_id)
             try:
                 passed = int(row["pass_0_or_1"])
                 correctness = float(row["correctness_0_5"])
@@ -35,6 +40,9 @@ def score_csv(path: str | Path) -> dict:
             security = (row["security_failure_yes_no"] or "").strip().lower()
             if passed not in (0, 1) or autonomous not in (0, 1):
                 raise ValueError(f"Line {line_no}: binary fields must be 0 or 1")
+            numeric_values = (correctness, source_quality, duration, cost)
+            if not all(math.isfinite(value) for value in numeric_values):
+                raise ValueError(f"Line {line_no}: numeric fields must be finite")
             if not (0 <= correctness <= 5 and 0 <= source_quality <= 5 and duration >= 0 and cost >= 0):
                 raise ValueError(f"Line {line_no}: score/time/cost outside allowed range")
             if security not in ("yes", "no"):
@@ -45,7 +53,7 @@ def score_csv(path: str | Path) -> dict:
                          autonomous * 10 + (10 if cost == 0 else 10 / (1 + cost)) +
                          (10 if duration == 0 else 10 / (1 + duration / 60)) +
                          (5 if security == "no" else 0))
-            rows.append({"task_id": row["task_id"], "score": round(row_score, 2),
+            rows.append({"task_id": task_id, "score": round(row_score, 2),
                          "passed": bool(passed), "security_failure": security == "yes",
                          "duration_seconds": duration, "estimated_cost_usd": cost})
     if not rows:

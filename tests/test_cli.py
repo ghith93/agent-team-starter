@@ -26,6 +26,48 @@ class CliTests(unittest.TestCase):
             code = main(["inline task", "--task-file", f.name])
         self.assertEqual(code, 2)
 
+    def test_oversized_task_file_is_rejected_before_team_execution(self):
+        out = io.StringIO()
+        with tempfile.NamedTemporaryFile(mode="wb") as f:
+            f.write(b"x" * (12000 * 4 + 100000))
+            f.flush()
+            with patch("agent_team.cli.run_team") as run_team, contextlib.redirect_stderr(out):
+                code = main(["--task-file", f.name])
+        self.assertEqual(code, 2)
+        self.assertIn("too long", out.getvalue())
+        run_team.assert_not_called()
+
+    def test_valid_multibyte_task_at_character_limit_is_accepted(self):
+        task = "a" * 11999 + "💇"
+        out = io.StringIO()
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8") as f:
+            f.write(task)
+            f.flush()
+            with patch("agent_team.cli.run_team", return_value={"ok": True}) as run_team, contextlib.redirect_stdout(out):
+                code = main(["--task-file", f.name])
+        self.assertEqual(code, 0)
+        self.assertEqual(run_team.call_args.args[0], task)
+
+    def test_oversized_inline_task_is_rejected_before_team_execution(self):
+        out = io.StringIO()
+        task = "x" * 12001
+        with patch("agent_team.cli.run_team") as run_team, contextlib.redirect_stderr(out):
+            code = main([task])
+        self.assertEqual(code, 2)
+        self.assertIn("too long", out.getvalue())
+        run_team.assert_not_called()
+
+    def test_invalid_utf8_task_file_is_rejected_cleanly(self):
+        out = io.StringIO()
+        with tempfile.NamedTemporaryFile(mode="wb") as f:
+            f.write(bytes([118, 97, 108, 105, 100, 32, 112, 114, 101, 102, 105, 120, 255, 105, 110, 118, 97, 108, 105, 100]))
+            f.flush()
+            with patch("agent_team.cli.run_team") as run_team, contextlib.redirect_stderr(out):
+                code = main(["--task-file", f.name])
+        self.assertEqual(code, 2)
+        self.assertIn("UnicodeDecodeError", out.getvalue())
+        run_team.assert_not_called()
+
     def test_memory_database_requires_explicit_query(self):
         out = io.StringIO()
         with contextlib.redirect_stderr(out):

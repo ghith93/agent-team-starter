@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 from types import SimpleNamespace
 
 from agent_team.router import ProviderError
@@ -46,6 +47,31 @@ class TeamTests(unittest.TestCase):
         self.assertIn("plan", error.completed)
         self.assertNotIn("draft", error.completed)
         self.assertEqual(len(router.calls), 2)
+
+    def test_oversized_task_is_rejected_before_router_execution(self):
+        router = FakeRouter()
+        with self.assertRaisesRegex(ValueError, "maximum 12000 characters"):
+            run_team("x" * 12001, router)
+        self.assertEqual(router.calls, [])
+
+    def test_telemetry_write_failure_does_not_fail_successful_run(self):
+        router = FakeRouter()
+        with patch("agent_team.team._write_events", side_effect=OSError("private path detail")):
+            result = run_team("test task", router, telemetry_path="unused.jsonl")
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["final"], "stage-2")
+        self.assertEqual(result["telemetry_warning"], "Telemetry write failed (OSError).")
+        self.assertNotIn("private path detail", str(result))
+
+    def test_telemetry_write_failure_does_not_mask_stage_failure(self):
+        router = FakeRouter(fail_at=1)
+        with patch("agent_team.team._write_events", side_effect=OSError("private path detail")):
+            with self.assertRaises(TeamExecutionError) as caught:
+                run_team("test task", router, telemetry_path="unused.jsonl")
+        self.assertEqual(caught.exception.stage, "plan")
+        self.assertIsInstance(caught.exception.cause, ProviderError)
+        self.assertEqual(caught.exception.telemetry_warning, "Telemetry write failed (OSError).")
+        self.assertNotIn("private path detail", str(caught.exception))
 
     def test_empty_output_stops_at_stage(self):
         class EmptyRouter:
