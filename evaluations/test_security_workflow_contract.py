@@ -63,6 +63,30 @@ class SecurityWorkflowContractTests(unittest.TestCase):
         self.assertIn('run: semgrep scan --config p/python --error agent_team', isolated)
         self.assertIn('"pip-audit==2.9.0"', isolated)
 
+
+    def test_all_workflows_declare_permissions_and_pin_actions_to_full_shas(self):
+        workflow_dir = ROOT / ".github" / "workflows"
+        workflow_files = sorted(
+            list(workflow_dir.glob("*.yml")) + list(workflow_dir.glob("*.yaml"))
+        )
+        self.assertTrue(workflow_files, "Expected workflow YAML files to audit")
+
+        for path in workflow_files:
+            content = path.read_text(encoding="utf-8")
+            with self.subTest(workflow=path.name):
+                self.assertRegex(
+                    content,
+                    r"(?m)^permissions:\\n(?:  [a-z-]+: (?:read|write|none)\\n?)+",
+                    "Every workflow must explicitly declare least-privilege permissions",
+                )
+                action_refs = re.findall(r"(?m)^\\s*uses:\\s*([^\\s#]+)", content)
+                for action_ref in action_refs:
+                    self.assertRegex(
+                        action_ref,
+                        r"@[0-9a-f]{40}$",
+                        f"Action must be pinned to a full commit SHA: {action_ref}",
+                    )
+
     def test_checkout_major_is_currently_configured_as_v7(self):
         self.assertIn("actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1", self.text)
         self.assertIn("actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0", self.text)
