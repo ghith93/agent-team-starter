@@ -27,6 +27,7 @@ This roadmap prioritizes evidence, reversible changes, and free/open-source opti
 - [ ] Add any further redirect-handling and malformed-provider-response tests only where current coverage is insufficient.
 
 ## Phase D — Monitoring and recovery
+- [x] Record hosting constraints: Render Free is unsuitable for the current durable SQLite worker; hosting choice remains blocked pending an existing persistent host or an explicit serverless migration (2026-10-26).
 - [x] Add opt-in durable SQLite queue state with worker leases, stale-worker fencing, bounded retries, and terminal failure state.
 - [x] Add local queue health checks and backup/restore scripts with temporary-database tests.
 - [x] Provide systemd unit/timer templates and an iPhone-first deployment preflight/runbook.
