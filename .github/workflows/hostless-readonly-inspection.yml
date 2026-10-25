@@ -8,6 +8,12 @@ on:
         required: true
         default: "agent-team-worker"
         type: string
+  push:
+    branches:
+      - main
+    paths:
+      - "scripts/hostless_readonly_inspect.py"
+      - ".github/workflows/hostless-readonly-inspection.yml"
 
 permissions:
   contents: read

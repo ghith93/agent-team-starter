@@ -84,21 +84,72 @@ def main() -> int:
         return 2
 
     worker_path = "/workers/" + quote(WORKER, safe="")
+    worker_check = get_json(worker_path)
+    deployments_check = get_json(worker_path + "/deployments")
+    runtime_logs_check = get_json(worker_path + "/logs")
+
+    # Hostless may fail the aggregate worker log endpoint while serving
+    # deployment-scoped logs. Try the newest successful deployment as a
+    # read-only fallback; never print raw API error bodies.
+    deployment_data = deployments_check.get("data")
+    deployment_items = (
+        deployment_data.get("items", [])
+        if isinstance(deployment_data, dict)
+        else deployment_data if isinstance(deployment_data, list) else []
+    )
+    latest_successful = next(
+        (
+            item for item in deployment_items
+            if isinstance(item, dict)
+            and item.get("status") == "DEPLOYMENT_SUCCESSFUL"
+            and item.get("id")
+        ),
+        None,
+    )
+    deployment_logs_check = None
+    if latest_successful:
+        deployment_id = str(latest_successful["id"])
+        deployment_logs_check = get_json(
+            worker_path + "/deployments/" + quote(deployment_id, safe="") + "/logs"
+        )
+
+    worker_data = worker_check.get("data")
+    latest_commit = latest_successful.get("gitCommitHash") if latest_successful else None
+    worker_commit = worker_data.get("gitCommitHash") if isinstance(worker_data, dict) else None
+    active_deployment = worker_data.get("activeDeployment") if isinstance(worker_data, dict) else None
+    latest_deployment_id = latest_successful.get("id") if latest_successful else None
+
     report = {
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "worker_name": WORKER,
         "mode": "read-only",
         "note": "Sensitive fields and common token patterns are redacted. Review before sharing logs.",
+        "diagnostics": {
+            "latest_successful_deployment_id": latest_deployment_id,
+            "worker_active_deployment_matches_latest_success": (
+                active_deployment == latest_deployment_id
+                if active_deployment and latest_deployment_id else None
+            ),
+            "worker_commit_matches_latest_success": (
+                worker_commit == latest_commit
+                if worker_commit and latest_commit else None
+            ),
+        },
         "checks": {
-            "worker": get_json(worker_path),
-            "deployments": get_json(worker_path + "/deployments"),
-            "runtime_logs": get_json(worker_path + "/logs"),
+            "worker": worker_check,
+            "deployments": deployments_check,
+            "runtime_logs": runtime_logs_check,
+            "latest_deployment_logs_fallback": deployment_logs_check,
         },
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    statuses = {name: value.get("status") for name, value in report["checks"].items()}
+    statuses = {
+        name: (value.get("status") if isinstance(value, dict) else None)
+        for name, value in report["checks"].items()
+    }
     print("Hostless read-only inspection completed. HTTP statuses: " + json.dumps(statuses))
+    print("Deployment consistency diagnostics: " + json.dumps(report["diagnostics"]))
     print("A redacted report was written to hostless-report/report.json.")
     return 0
 
