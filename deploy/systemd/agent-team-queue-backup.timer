@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily Agent Team queue backup schedule
+
+[Timer]
+OnCalendar=daily
+RandomizedDelaySec=15m
+Persistent=true
+Unit=agent-team-queue-backup.service
+
+[Install]
+WantedBy=timers.target
