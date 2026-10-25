@@ -23,7 +23,7 @@ A free-first Python multi-agent workflow (planner → executor → reviewer) wit
 - FreeLLMAPI integration was previously removed; do not reintroduce it without a new explicit requirement.
 
 ## Not yet verified / open risks
-1. Main-branch ruleset/protection state is not verified.
+1. Main-branch ruleset/protection state is not verified. The connected GitHub integration returns HTTP 403 for the branch-protection endpoint; the rulesets endpoint reports that rulesets require GitHub Pro or a public repository for this private repository. Do not make the repository public merely to bypass this limitation.
 2. GitHub Secret Scanning and Push Protection settings are not verified.
 3. No live worker or 24/7 deployment exists as far as the available evidence shows.
 4. No external health alert has been configured and test-delivered to a real destination.
