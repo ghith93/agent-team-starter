@@ -2,7 +2,7 @@
 Last updated: 2026-10-26
 Current phase: Phase 2 — durable workflow primitives merged; deployment acceptance remains open
 Repository: ghith93/agent-team-starter
-Current main commit at this state update: `8de5cd214f749951ab487af2923a3330e76f129e`
+Last independently verified main commit at this status checkpoint: `26319528761e26bccb598785e062b1a06b9bf64f` (documentation-only update; all five post-merge checks passed).
 Recovery reference: `backup/pre-audit-2026-10-23`
 
 ## Project purpose
@@ -16,7 +16,7 @@ A free-first Python multi-agent workflow (planner → executor → reviewer) wit
 - PR #39 fixed required isolated-security checks for docs-only pull requests; PR #40 added a regression test for that trigger contract; PR #41 and PR #42 refreshed operational status; PR #45 added a synthetic secret-scanner canary and shared fail-closed gate.
 
 ## Verified
-- The repository is public and `main` now points to `8de5cd214f749951ab487af2923a3330e76f129e` after PR #45 merged.
+- The repository is public. At the last verified checkpoint, `main` pointed to `26319528761e26bccb598785e062b1a06b9bf64f`; all five post-merge checks passed on that exact commit.
 - The active `main` ruleset (`25836352`) requires pull requests and six checks: `tests`, `Offline regression and evaluator suites`, `Python static security analysis`, `Dependency vulnerability audit`, `Gitleaks secret scan`, and `Parse workflow and Dependabot YAML`. Required approvals are set to zero; force pushes are blocked. `strict=false` means the PR branch need not be up to date before merge.
 - PR #39 merged a fix so the isolated security workflow reports required checks on docs-only pull requests.
 - Python project sources live under `agent_team/`.
