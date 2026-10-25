@@ -2,7 +2,7 @@
 Last updated: 2026-10-25
 Current phase: Phase 2 — durable workflow primitives merged; deployment acceptance remains open
 Repository: ghith93/agent-team-starter
-Current main commit: `e15a15b4893cfe02de6f0c619cfe9f99abefafaa`
+Current main commit at this state update: `0761339734a7dc8e24830c96c833ef330e28e446`
 Recovery reference: `backup/pre-audit-2026-10-23`
 
 ## Project purpose
