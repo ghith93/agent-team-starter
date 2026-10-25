@@ -97,6 +97,13 @@ def main() -> int:
         if isinstance(deployment_data, dict)
         else deployment_data if isinstance(deployment_data, list) else []
     )
+    latest_deployment = next(
+        (
+            item for item in deployment_items
+            if isinstance(item, dict) and item.get("id")
+        ),
+        None,
+    )
     latest_successful = next(
         (
             item for item in deployment_items
@@ -107,17 +114,17 @@ def main() -> int:
         None,
     )
     deployment_logs_check = None
-    if latest_successful:
-        deployment_id = str(latest_successful["id"])
+    if latest_deployment:
+        deployment_id = str(latest_deployment["id"])
         deployment_logs_check = get_json(
             worker_path + "/deployments/" + quote(deployment_id, safe="") + "/logs"
         )
 
     worker_data = worker_check.get("data")
-    latest_commit = latest_successful.get("gitCommitHash") if latest_successful else None
+    latest_commit = latest_deployment.get("gitCommitHash") if latest_deployment else None
     worker_commit = worker_data.get("gitCommitHash") if isinstance(worker_data, dict) else None
     active_deployment = worker_data.get("activeDeployment") if isinstance(worker_data, dict) else None
-    latest_deployment_id = latest_successful.get("id") if latest_successful else None
+    latest_deployment_id = latest_deployment.get("id") if latest_deployment else None
 
     report = {
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -125,12 +132,15 @@ def main() -> int:
         "mode": "read-only",
         "note": "Sensitive fields and common token patterns are redacted. Review before sharing logs.",
         "diagnostics": {
-            "latest_successful_deployment_id": latest_deployment_id,
-            "worker_active_deployment_matches_latest_success": (
+            "latest_deployment_id": latest_deployment_id,
+            "latest_deployment_status": latest_deployment.get("status") if latest_deployment else None,
+            "latest_deployment_commit": latest_commit,
+            "latest_successful_deployment_id": latest_successful.get("id") if latest_successful else None,
+            "worker_active_deployment_matches_latest": (
                 active_deployment == latest_deployment_id
                 if active_deployment and latest_deployment_id else None
             ),
-            "worker_commit_matches_latest_success": (
+            "worker_commit_matches_latest_deployment": (
                 worker_commit == latest_commit
                 if worker_commit and latest_commit else None
             ),
