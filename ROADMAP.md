@@ -10,11 +10,11 @@ This roadmap prioritizes evidence, reversible changes, and free/open-source opti
 - [x] Review `.gitignore` and keep `.env.example` trackable.
 
 ## Phase B — Repository safeguards
-- [ ] Enable an appropriate main-branch ruleset/protection (require PR and successful checks where supported).
+- [x] Enable and verify the active `main` ruleset: PR required, six correctly named checks required, zero required approvals, force pushes blocked; verified 2026-10-25.
 - [ ] Verify Secret Scanning and Push Protection availability and state.
 - [x] Keep Gitleaks scanning on PRs and run history-aware scans in CI.
 - [ ] Add a synthetic canary test proving the secret scanner fails closed without committing a real credential.
-- [ ] Review all third-party GitHub Actions permissions and pin remaining mutable references to verified immutable SHAs.
+- [x] Enforce read-only workflow/job permissions and full-SHA pins for external GitHub Actions with regression checks; latest main checks observed 2026-10-25.
 - [ ] Decide on a root license after confirming intended reuse/distribution policy.
 
 ## Phase C — Test quality
@@ -43,8 +43,8 @@ This roadmap prioritizes evidence, reversible changes, and free/open-source opti
 - [ ] Keep optional tools isolated, tested, and removable.
 
 ## Phase F — Operational acceptance
-- [x] CI and security checks passed on the reviewed PR #28 head.
-- [ ] Verify secret protection and branch protection states.
+- [x] Offline regression, YAML, Gitleaks, dependency audit, Python static security analysis, and Semgrep passed on main commit `541a633116ae6b2ff9361afcda139edd347d7136`; aggregate security scan was still running when recorded.
+- [ ] Verify GitHub Secret Scanning and Push Protection settings; review ruleset bypass/freshness policy separately.
 - [ ] Deploy to an explicitly chosen host and verify restart/recovery behavior.
 - [ ] Test external alert delivery.
 - [ ] Test off-host backup restoration.
