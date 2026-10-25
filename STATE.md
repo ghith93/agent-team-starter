@@ -1,60 +1,53 @@
 # Project State
 Last updated: 2026-10-25
-Current phase: Phase 2 — safe operational baseline
+Current phase: Phase 2 — durable workflow primitives merged; deployment acceptance remains open
 Repository: ghith93/agent-team-starter
-Working branch: fix/phase2-baseline-main-clean
-Baseline reference: backup/pre-audit-2026-10-23
+Current main commit: `e15a15b4893cfe02de6f0c619cfe9f99abefafaa`
+Recovery reference: `backup/pre-audit-2026-10-23`
 
 ## Project purpose
-A free-first Python multi-agent workflow (planner → executor → reviewer) with model routing, offline regression tests, evaluation reports, and security checks.
+A free-first Python multi-agent workflow (planner → executor → reviewer) with model routing, offline regression tests, evaluation reports, local durable queue/memory primitives, and security checks.
 
-## Verified from repository inspection
-- Python project with source under `agent_team/`.
-- Existing offline regression workflow: `.github/workflows/offline-tests.yml`.
-- Existing YAML syntax workflow: `.github/workflows/yaml-syntax.yml`.
-- Existing scheduled security workflow: `.github/workflows/security.yml`.
-- Dependabot configuration exists at `.github/dependabot.yml`.
-- `agent_team/web_research.py` documents that URL validation is defense-in-depth and DNS rebinding is not fully prevented by application-level validation.
-- The main branch was reported unprotected during the initial audit; current protection settings have not been verified.
+## Recently merged
+- PR #26 narrowed secret-scanner exclusions; broad provider-key line suppression was removed.
+- PR #27 added the operational state register, roadmap, iPhone-first runbook, `.gitignore` safeguards, and pending-license decision record.
+- PR #28 added an opt-in SQLite workflow queue with leases, bounded retries, stale-worker fencing, local memory retrieval, CLI queue modes, health/backup/restore helpers, systemd templates, and regression tests.
+- PR #28 CI passed on the reviewed head: offline regression/evaluator suite, YAML validation, Gitleaks, Bandit, pip-audit, Semgrep, detect-secrets, isolated security audits, and promotion-readiness gate.
+
+## Verified
+- Python project sources live under `agent_team/`.
+- Offline regression, YAML validation, security scan, and promotion-readiness workflows exist and passed on PR #28's head.
+- `agent_team/workflow_store.py` implements durable SQLite queue state; `agent_team/memory_store.py` provides opt-in local memory retrieval.
+- Deployment and systemd files are templates only; no host has been provisioned, and no service has been installed or started.
+- The security workflow on `main` retains the narrow exclusions merged in PR #26.
 - FreeLLMAPI integration was previously removed; do not reintroduce it without a new explicit requirement.
-- PR #26 narrowed secret-scanner exclusions and merged into `main` at commit `d388caa522c3166aaa574c7f414229971f4b6ca0`.
 
-## Completed in this change
-- Reapplied the operational documentation on a clean branch based on current `main`, preserving the merged secret-scanner fix.
-- Kept the license decision explicit rather than adding a license without owner intent.
-
-## Not yet verified
-- Whether GitHub Secret Scanning and Push Protection are enabled for this repository.
-- Whether branch protection/rulesets can be enabled with the current account permissions.
-- Whether a live application is deployed and what its health endpoint is.
-- Whether an independent, restorable backup destination exists.
-- Whether the historical Git commit graph contains exposed credentials. A workflow scan is not proof that history is clean.
-- Whether current provider credentials are valid or have remaining free quota. No live model calls were made.
-
-## Open risks
-1. Main branch protection is not verified.
-2. No independent scheduled backup and restore drill has been verified.
-3. No external service health monitor has been verified.
-4. Web fetcher requires network-level egress controls for hostile or public-facing use.
-5. No root license file was found in the inspected repository tree; licensing decision is pending owner/project intent.
-6. Do not claim 24/7 availability based on scheduled GitHub Actions alone.
+## Not yet verified / open risks
+1. Main-branch ruleset/protection state is not verified.
+2. GitHub Secret Scanning and Push Protection settings are not verified.
+3. No live worker or 24/7 deployment exists as far as the available evidence shows.
+4. No external health alert has been configured and test-delivered to a real destination.
+5. No independent off-host backup and operational restore drill has been verified. The included backup/restore scripts and CI tests do not establish off-host recovery.
+6. SQLite stores task text and local backups in plaintext. Never enqueue credentials, confidential prompts, or private customer data; restrict backup file access and encrypt any external backup destination.
+7. Web fetching still needs network-level egress controls for hostile/public-facing use; application URL validation alone does not fully prevent DNS rebinding.
+8. No root license has been selected; `LICENSE_PENDING.md` is a decision record, not a license.
+9. CI scans do not prove the entire Git history is free of credentials or that provider keys/quotas are valid.
 
 ## Operating constraints
-- Do not commit API keys, tokens, passwords, customer data, cookies, or private identifiers.
-- Keep provider keys in GitHub Actions Secrets or the deployment platform's secret manager.
-- Do not trigger paid/live inference, public deployment, destructive operations, or public publishing without explicit approval.
+- Do not commit API keys, tokens, passwords, cookies, recovery codes, or customer data.
+- Do not trigger paid/live inference or spend provider quota without explicit authorization.
 - Prefer feature branches and pull requests; do not write directly to `main`.
-- Before risky changes, preserve a recovery point and document rollback.
-- Treat all automated scan findings as candidates requiring review; never silence broad patterns merely to make a workflow green.
+- Treat scan findings as candidates for review; never weaken scanners broadly to make a workflow green.
+- Do not claim 24/7 availability based on templates or scheduled GitHub Actions.
 
 ## Next actions
-1. Run CI on this clean branch and verify all mandatory checks pass.
-2. Run a safe synthetic secret-detection regression that confirms a non-exempt canary is still detected.
-3. Review repository security settings in GitHub UI because the connected integration cannot verify branch protection; do not infer settings are enabled.
-4. Identify the actual runtime/deployment target before designing external monitoring or backups.
-5. Plan an independent backup destination and restore drill.
-6. Keep the PR in draft until CI and review are complete.
+1. Verify repository branch protection and secret-protection settings with authorized GitHub access.
+2. Decide whether/where to host the worker; assess free-tier sleep, quotas, persistent disk, and secret storage before deployment.
+3. Configure an external health check and alert destination only after a real endpoint and destination exist; test notification delivery.
+4. Configure an independent encrypted backup destination and complete a restore drill.
+5. Decide the project license after checking ownership and third-party content.
+6. Run a genuine authenticated cross-model evaluation only if existing authorized CLI sessions are available; do not spend paid quota by default.
 
 ## Limits
-- No live inference, deployment, merge, or account-level security setting changes were performed.
-- CI success is limited to the exact commit and checks recorded by GitHub; it is not proof of 24/7 availability or a clean entire history.
+- No live model calls, deployment, host provisioning, external alert delivery, independent backup, or account-level security setting changes were performed.
+- Passing CI verifies the tested commit and checks only; it does not prove production reliability, complete history cleanliness, or 24/7 operation.
