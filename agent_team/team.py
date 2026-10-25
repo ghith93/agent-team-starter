@@ -11,6 +11,7 @@ from typing import Any
 from .router import FreeFirstRouter, ModelResult
 
 
+MAX_TASK_CHARS = 12000
 MAX_STAGE_OUTPUT_CHARS = 30000
 
 
