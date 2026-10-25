@@ -1,4 +1,4 @@
-"""Command-line entry point with explicit offline/configuration modes."""
+""""Command-line entry point with explicit offline/configuration modes."""
 from __future__ import annotations
 import argparse
 import json
@@ -7,6 +7,9 @@ import sys
 from pathlib import Path
 from .router import FreeFirstRouter, ProviderError
 from .team import TeamExecutionError, run_team
+
+
+MAX_TASK_CHARS = 12000
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -36,9 +39,15 @@ def main(argv=None):
         return 2
     if args.task_file:
         try:
-            task = args.task_file.read_text(encoding="utf-8")
-        except OSError as exc:
+            # Read one character beyond the accepted limit to reject oversized files
+            # without loading an unbounded input into memory.
+            with args.task_file.open("r", encoding="utf-8") as handle:
+                task = handle.read(MAX_TASK_CHARS + 1)
+        except (OSError, UnicodeError) as exc:
             print(f"Could not read task file: {type(exc).__name__}", file=sys.stderr)
+            return 2
+        if len(task) > MAX_TASK_CHARS:
+            print(f"Task file is too long (maximum {MAX_TASK_CHARS} characters).", file=sys.stderr)
             return 2
     else:
         task = " ".join(args.task)
