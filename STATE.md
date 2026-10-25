@@ -2,7 +2,7 @@
 Last updated: 2026-10-26
 Current phase: Phase 2 — durable workflow primitives merged; deployment acceptance remains open
 Repository: ghith93/agent-team-starter
-Last verified application/security commit: `8de5cd214f749951ab487af2923a3330e76f129e`; the follow-up documentation-only commit `26319528761e26bccb598785e062b1a06b9bf64f` also passed all five checks.
+Current main: `c3d351e359edb0653d218e27c08ed66e76550dc6`; all five required checks passed on this exact commit after PR #53 merged.
 Recovery reference: `backup/pre-audit-2026-10-23`
 
 ## Project purpose
@@ -16,11 +16,11 @@ A free-first Python multi-agent workflow (planner → executor → reviewer) wit
 - PR #39 fixed required isolated-security checks for docs-only pull requests; PR #40 added a regression test for that trigger contract; PR #41 and PR #42 refreshed operational status; PR #45 added a synthetic secret-scanner canary and shared fail-closed gate.
 
 ## Verified
-- The repository is public. PR #45 merged at `8de5cd214f749951ab487af2923a3330e76f129e`; the follow-up documentation-only commit `26319528761e26bccb598785e062b1a06b9bf64f` passed all five post-merge checks.
+- The repository is public. PR #53 merged the iPhone-only zero-cost completion plan at `c3d351e359edb0653d218e27c08ed66e76550dc6`; all five required checks passed on this exact main commit.
 - The active `main` ruleset (`25836352`) requires pull requests and six checks: `tests`, `Offline regression and evaluator suites`, `Python static security analysis`, `Dependency vulnerability audit`, `Gitleaks secret scan`, and `Parse workflow and Dependabot YAML`. Required approvals are set to zero; force pushes are blocked. `strict=false` means the PR branch need not be up to date before merge.
 - PR #39 merged a fix so the isolated security workflow reports required checks on docs-only pull requests.
 - Python project sources live under `agent_team/`.
-- On `8de5cd214f749951ab487af2923a3330e76f129e`, the post-merge `tests`, YAML validation, Gitleaks, offline regression/evaluator, and Python SAST/secrets/dependency audit checks all completed successfully. The synthetic canary was detected and the shared gate rejected its finding on PR #45 before merge.
+- On `c3d351e359edb0653d218e27c08ed66e76550dc6`, all five required checks completed successfully: `tests`, YAML parsing, Gitleaks, offline regression/evaluator, and Python SAST/secrets/dependency audit. The synthetic canary was detected and rejected by the shared gate on PR #45 before merge.
 - `agent_team/workflow_store.py` implements durable SQLite queue state; `agent_team/memory_store.py` provides opt-in local memory retrieval.
 - Deployment and systemd files are templates only; no host has been provisioned, and no service has been installed or started.
 - The security workflow on `main` retains the narrow exclusions merged in PR #26. `scripts/check_detect_secrets.py` is the shared fail-closed gate used by the production scan and the synthetic canary test.
@@ -52,7 +52,7 @@ A free-first Python multi-agent workflow (planner → executor → reviewer) wit
 - A serverless alternative (for example, Cloudflare Workers + Queues + D1) is an architecture migration, not a drop-in host: it requires replacing SQLite-specific queue semantics and adding migration, idempotency, failure/retry, security, and recovery tests before acceptance. No Cloudflare account, resource, or migration has been created.
 
 ## Zero-cost iPhone execution plan
-- Added `docs/IPHONE_ZERO_COST_COMPLETION_PLAN.md` on feature branch `docs/iphone-zero-cost-completion`. It records the mobile UI checks, evidence standards, free-only operational tests, and hard blockers that cannot be proven from repository access alone. This is documentation, not evidence that those live checks have been performed.
+- PR #53 merged `docs/IPHONE_ZERO_COST_COMPLETION_PLAN.md` into `main` at `c3d351e359edb0653d218e27c08ed66e76550dc6`. It records the mobile UI checks, evidence standards, free-only operational tests, and hard blockers that cannot be proven from repository access alone. This is documentation, not evidence that those live checks have been performed.
 
 ## Next actions
 1. Verify GitHub Secret Scanning and Push Protection settings and review ruleset bypass/freshness policy.
