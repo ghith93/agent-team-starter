@@ -39,10 +39,14 @@ def main(argv=None):
         return 2
     if args.task_file:
         try:
-            # Read one character beyond the accepted limit to reject oversized files
-            # without loading an unbounded input into memory.
-            with args.task_file.open("r", encoding="utf-8") as handle:
-                task = handle.read(MAX_TASK_CHARS + 1)
+            # UTF-8 characters can occupy up to four bytes. Read only the maximum
+            # possible encoded size plus one byte, then validate the character limit.
+            with args.task_file.open("rb") as handle:
+                raw_task = handle.read(MAX_TASK_CHARS * 4 + 1)
+            if len(raw_task) > MAX_TASK_CHARS * 4:
+                print(f"Task file is too long (maximum {MAX_TASK_CHARS} characters).", file=sys.stderr)
+                return 2
+            task = raw_task.decode("utf-8")
         except (OSError, UnicodeError) as exc:
             print(f"Could not read task file: {type(exc).__name__}", file=sys.stderr)
             return 2
