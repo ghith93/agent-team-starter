@@ -55,6 +55,9 @@ def main(argv=None):
             return 2
     else:
         task = " ".join(args.task)
+    if len(task) > MAX_TASK_CHARS:
+        print(f"Task is too long (maximum {MAX_TASK_CHARS} characters).", file=sys.stderr)
+        return 2
     if not task.strip():
         print('Provide task text or --task-file. Use --check-config for a no-network check.', file=sys.stderr)
         return 2
