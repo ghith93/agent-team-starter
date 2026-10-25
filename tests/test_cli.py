@@ -50,6 +50,15 @@ class CliTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(run_team.call_args.args[0], task)
 
+    def test_oversized_inline_task_is_rejected_before_team_execution(self):
+        out = io.StringIO()
+        task = "x" * (MAX_TASK_CHARS + 1)
+        with patch("agent_team.cli.run_team") as run_team, contextlib.redirect_stderr(out):
+            code = main([task])
+        self.assertEqual(code, 2)
+        self.assertIn("too long", out.getvalue())
+        run_team.assert_not_called()
+
     def test_invalid_utf8_task_file_is_rejected_cleanly(self):
         out = io.StringIO()
         with tempfile.NamedTemporaryFile(mode="wb") as f:
