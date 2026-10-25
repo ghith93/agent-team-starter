@@ -37,6 +37,7 @@ jobs:
           mkdir -p "$target"
           git archive HEAD | tar -x -C "$target"
           test -d "$target/agent_team"
+          printf '%s\\n' '.github/**' > "$target/.graphifyignore"
       - name: Run code-only extraction with all LLM backends disabled
         shell: bash
         env:
