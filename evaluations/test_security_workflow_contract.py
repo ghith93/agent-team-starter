@@ -53,6 +53,16 @@ class SecurityWorkflowContractTests(unittest.TestCase):
         self.assertIn("gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e", self.text)
         self.assertIn('GITLEAKS_ENABLE_COMMENTS: "false"', self.text)
 
+    def test_isolated_audit_uses_immutable_action_pins_and_read_only_permissions(self):
+        isolated = (ROOT / ".github" / "workflows" / "security-audit-isolated.yml").read_text(encoding="utf-8")
+        self.assertRegex(isolated, r"(?m)^permissions:\\n  contents: read$")
+        self.assertIn("actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1", isolated)
+        self.assertIn("actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0", isolated)
+        self.assertNotRegex(isolated, r"uses:\\s+actions/(?:checkout|setup-python)@v\\d+")
+        self.assertIn('run: bandit -r agent_team -ll', isolated)
+        self.assertIn('run: semgrep scan --config p/python --error agent_team', isolated)
+        self.assertIn('"pip-audit==2.9.0"', isolated)
+
     def test_checkout_major_is_currently_configured_as_v7(self):
         self.assertIn("actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1", self.text)
         self.assertIn("actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0", self.text)
