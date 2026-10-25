@@ -29,3 +29,11 @@
 ## Decision
 
 **Keep Graphify as an optional architecture-review aid, not a required dependency.** The first run proves that the pinned tool installs and produces a local graph without model calls. A second filtered run is required before judging its practical value.
+
+## Filtered rerun after merging the pilot workflow
+
+- Workflow run: https://github.com/ghith93/agent-team-starter/actions/runs/40225936210
+- The workflow excluded `.github/**` from the disposable copy and kept `GRAPHIFY_BACKEND=none`.
+- Result: 34 code files; 284 nodes, 588 edges, 12 communities.
+- Compared with the initial run (41 classified code files; 492 nodes, 806 edges, 24 communities), the filtered graph is substantially smaller. The first-run counts included workflow YAML and related configuration noise.
+- This is evidence the filter reduces graph size, not yet proof of better findings. No import cycles or model/API use should be inferred beyond what the run itself reported. Keep Graphify optional until a human review confirms that the communities reveal actionable code relationships.
