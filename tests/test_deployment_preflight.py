@@ -32,13 +32,13 @@ class DeploymentPreflightTests(unittest.TestCase):
     def test_rejects_insecure_webhook_without_echoing_value(self):
         with tempfile.TemporaryDirectory() as temp:
             envfile = Path(temp) / "health.env"
-            secretish = "http://private.example.invalid/hook?sample=redacted"
-            envfile.write_text("ALERT_WEBHOOK_URL=" + secretish + "\n", encoding="utf-8")
+            sample_url = "http://private.example.invalid/hook?sample=redacted"
+            envfile.write_text("ALERT_WEBHOOK_URL=" + sample_url + "\n", encoding="utf-8")
             envfile.chmod(0o600)
             result = self.run_preflight("--health-env-file", str(envfile))
             self.assertEqual(result.returncode, 1)
             self.assertIn("ALERT_WEBHOOK_URL is malformed", result.stderr)
-            self.assertNotIn(secretish, result.stdout + result.stderr)
+            self.assertNotIn(sample_url, result.stdout + result.stderr)
 
     def test_accepts_https_webhook_and_owner_only_permissions(self):
         with tempfile.TemporaryDirectory() as temp:
