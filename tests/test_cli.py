@@ -22,14 +22,15 @@ class CliTests(unittest.TestCase):
     def test_task_file_and_task_conflict(self):
         out = io.StringIO()
         with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8") as f, contextlib.redirect_stderr(out):
-            f.write("task"); f.flush()
+            f.write("task")
+            f.flush()
             code = main(["inline task", "--task-file", f.name])
         self.assertEqual(code, 2)
 
     def test_oversized_task_file_is_rejected_before_team_execution(self):
         out = io.StringIO()
-        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8") as f:
-            f.write("x" * (MAX_TASK_CHARS + 100000))
+        with tempfile.NamedTemporaryFile(mode="wb") as f:
+            f.write(b"x" * (MAX_TASK_CHARS * 4 + 100000))
             f.flush()
             with patch("agent_team.cli.run_team") as run_team, contextlib.redirect_stderr(out):
                 code = main(["--task-file", f.name])
@@ -37,10 +38,22 @@ class CliTests(unittest.TestCase):
         self.assertIn("too long", out.getvalue())
         run_team.assert_not_called()
 
+    def test_valid_multibyte_task_at_character_limit_is_accepted(self):
+        task = "a" * (MAX_TASK_CHARS - 1) + "💇"
+        self.assertEqual(len(task), MAX_TASK_CHARS)
+        out = io.StringIO()
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8") as f:
+            f.write(task)
+            f.flush()
+            with patch("agent_team.cli.run_team", return_value={"ok": True}) as run_team, contextlib.redirect_stdout(out):
+                code = main(["--task-file", f.name])
+        self.assertEqual(code, 0)
+        self.assertEqual(run_team.call_args.args[0], task)
+
     def test_invalid_utf8_task_file_is_rejected_cleanly(self):
         out = io.StringIO()
         with tempfile.NamedTemporaryFile(mode="wb") as f:
-            f.write(b"valid prefix\xffinvalid")
+            f.write(b"valid prefix\\xffinvalid")
             f.flush()
             with patch("agent_team.cli.run_team") as run_team, contextlib.redirect_stderr(out):
                 code = main(["--task-file", f.name])
