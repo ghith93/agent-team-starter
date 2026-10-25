@@ -54,6 +54,15 @@ class SecretScanExclusionPolicyTests(unittest.TestCase):
         self.assertIsNone(self.pattern.search("uses: actions/checkout@v4"))
         self.assertIsNone(self.pattern.search("uses: attacker/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"))
 
+    def test_isolated_security_audit_actions_are_immutable(self):
+        audit_workflow = ROOT / ".github" / "workflows" / "security-audit-isolated.yml"
+        source = audit_workflow.read_text(encoding="utf-8")
+        action_refs = re.findall(r"^\s*uses:\s*([^\s#]+)", source, flags=re.MULTILINE)
+        self.assertTrue(action_refs, "expected third-party actions in isolated security workflow")
+        for ref in action_refs:
+            with self.subTest(action=ref):
+                self.assertRegex(ref, r"^[^@]+@[0-9a-f]{40}$", "action references must be pinned to immutable commit SHAs")
+
 
 if __name__ == "__main__":
     unittest.main()
