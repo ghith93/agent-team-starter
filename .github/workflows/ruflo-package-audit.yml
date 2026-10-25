@@ -1,0 +1,88 @@
+name: Ruflo package metadata audit
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Exact npm version to inspect (blank = current published version; inspection only)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ruflo-package-audit-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  inspect-package:
+    name: Inspect npm package without installing or executing it
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+
+      - name: Resolve and validate exact package version
+        id: package
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "${REQUESTED_VERSION}" ]]; then
+            VERSION="${REQUESTED_VERSION}"
+          else
+            VERSION="$(npm view ruflo version)"
+          fi
+          if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Refusing non-exact or malformed version: ${VERSION}" >&2
+            exit 1
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          mkdir -p audit-output
+          npm view "ruflo@${VERSION}" version license engines dependencies optionalDependencies peerDependencies dist.integrity dist.tarball --json > audit-output/metadata.json
+          printf 'Inspected package: ruflo@%s\n' "${VERSION}" > audit-output/summary.txt
+
+      - name: Download package archive without lifecycle scripts
+        env:
+          VERSION: ${{ steps.package.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm pack --ignore-scripts --json "ruflo@${VERSION}" > audit-output/pack.json
+          ARCHIVE="$(node -e "const fs=require('fs');const x=JSON.parse(fs.readFileSync('audit-output/pack.json','utf8'));if(!x[0]?.filename)process.exit(2);process.stdout.write(x[0].filename)")"
+          tar -tzf "$ARCHIVE" > audit-output/archive-files.txt
+          tar -xOf "$ARCHIVE" package/package.json > audit-output/package.json
+          node <<'NODE'
+          const fs = require('fs');
+          const p = JSON.parse(fs.readFileSync('audit-output/package.json', 'utf8'));
+          const lifecycle = Object.fromEntries(Object.entries(p.scripts || {}).filter(([k]) =>
+            /^(preinstall|install|postinstall|prepare|prepublish|prepublishOnly)$/.test(k)));
+          const report = {
+            name: p.name,
+            version: p.version,
+            license: p.license,
+            engines: p.engines || {},
+            lifecycleScripts: lifecycle,
+            dependencyNames: Object.keys(p.dependencies || {}).sort(),
+            optionalDependencyNames: Object.keys(p.optionalDependencies || {}).sort(),
+            peerDependencyNames: Object.keys(p.peerDependencies || {}).sort(),
+            note: "Static metadata only; package code was not installed or executed."
+          };
+          fs.writeFileSync('audit-output/manifest-review.json', JSON.stringify(report, null, 2) + '\n');
+          console.log(JSON.stringify(report, null, 2));
+          NODE
+
+      - name: Upload audit evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ruflo-package-audit-${{ steps.package.outputs.version }}
+          path: audit-output/
+          if-no-files-found: error
+          retention-days: 14
