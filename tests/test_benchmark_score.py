@@ -52,6 +52,39 @@ class BenchmarkScoreTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "must be finite"):
             score_csv(self._write_csv([self._row(duration_seconds="inf")]))
 
+
+    def test_blank_task_id_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "task_id is required"):
+            score_csv(self._write_csv([self._row(task_id="   ")]))
+
+    def test_invalid_security_value_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "must be yes or no"):
+            score_csv(self._write_csv([self._row(security_failure_yes_no="unknown")]))
+
+    def test_negative_duration_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "outside allowed range"):
+            score_csv(self._write_csv([self._row(duration_seconds="-0.1")]))
+
+    def test_negative_cost_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "outside allowed range"):
+            score_csv(self._write_csv([self._row(estimated_cost_usd="-0.01")]))
+
+    def test_missing_required_column_is_rejected(self):
+        handle = tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", suffix=".csv", delete=False)
+        self.addCleanup(lambda: Path(handle.name).unlink(missing_ok=True))
+        handle.write("task_id,pass_0_or_1\\nTASK-01,1\\n")
+        handle.close()
+        with self.assertRaisesRegex(ValueError, "Missing required columns"):
+            score_csv(handle.name)
+
+    def test_empty_csv_data_is_rejected(self):
+        handle = tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", suffix=".csv", delete=False)
+        self.addCleanup(lambda: Path(handle.name).unlink(missing_ok=True))
+        handle.write(",".join(REQUIRED) + "\\n")
+        handle.close()
+        with self.assertRaisesRegex(ValueError, "No benchmark rows"):
+            score_csv(handle.name)
+
     def test_infinite_cost_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "must be finite"):
             score_csv(self._write_csv([self._row(estimated_cost_usd="inf")]))
