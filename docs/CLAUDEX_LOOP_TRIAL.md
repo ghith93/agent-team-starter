@@ -90,6 +90,7 @@ Otherwise, keep only the evaluation notes and do not integrate the runner.
 
 - Pinned upstream commit: `53cddc42e39346fb8c6d5d612281a3b1add14e66`.
 - License: MIT. Development test dependency: PyYAML only.
+- **Attribution-path caveat:** the root LICENSE says adapted `CONTEXT-FORMAT.md` / `ADR-FORMAT.md` material is covered by each skill's `THIRD-PARTY-NOTICES.md`. At the pinned commit, notices are present under `legacy/grill-me-codex/` and `legacy/grill-with-docs-codex/`, but not beside the active `skills/claudex-loop/` files. Root LICENSE attribution exists, yet the notice-path wording/mapping should be clarified upstream before copying or adopting those files. This remains an open Gate 0 item.
 - Focused source review observed read-only reviewer modes, explicit MCP disabling for review, hook disabling in the Claude build invocation, process timeouts, plan snapshot/approval binding, and fresh-session inspection requirements.
 - This is a focused review, not a complete independent security audit. Do not run against production repositories or sensitive data until a broader review is completed.
 
