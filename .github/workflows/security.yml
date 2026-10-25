@@ -71,9 +71,9 @@ jobs:
           import sys
           # Construct an inert AWS-shaped canary at runtime so scanners do not
           # mistake the test source itself for a committed credential.
-          canary = "AKIA" + "IOSFODNN7EXAMPLE"
+          canary = "AKIA" + "Z9Y8X7W6V5U4T3S2"
           with open(sys.argv[1], "w", encoding="utf-8") as fixture:
-              fixture.write(f"aws_access_key_id = {canary}\\n")
+              fixture.write(f"aws_access_key_id = {canary}\n")
           PYFIXTURE
           (
             cd "$canary_dir"
@@ -95,7 +95,7 @@ jobs:
               capture_output=True, text=True, check=False,
           )
           if gate.returncode != 1:
-              raise SystemExit(f"FAIL: shared secret gate returned {gate.returncode}, expected 1\\n{gate.stdout}\\n{gate.stderr}")
+              raise SystemExit(f"FAIL: shared secret gate returned {gate.returncode}, expected 1\n{gate.stdout}\n{gate.stderr}")
           print("PASS: shared production gate fails closed when findings exist")
           PYSCAN
       - name: Bandit Python security lint
