@@ -2,7 +2,7 @@
 Last updated: 2026-10-26
 Current phase: Phase 2 — durable workflow primitives merged; deployment acceptance remains open
 Repository: ghith93/agent-team-starter
-Last verified application/security commit: `8de5cd214f749951ab487af2923a3330e76f129e`; the follow-up documentation-only commit `26319528761e26bccb598785e062b1a06b9bf64f` also passed all five checks.
+Current main: `650ad15358f36317d10d31bb3833a39e149b5bd2` (documentation checkpoint; all five post-merge checks passed on this exact SHA).
 Recovery reference: `backup/pre-audit-2026-10-23`
 
 ## Project purpose
@@ -14,13 +14,14 @@ A free-first Python multi-agent workflow (planner → executor → reviewer) wit
 - PR #28 added an opt-in SQLite workflow queue with leases, bounded retries, stale-worker fencing, local memory retrieval, CLI queue modes, health/backup/restore helpers, systemd templates, and regression tests.
 - PR #28 CI passed on the reviewed head: offline regression/evaluator suite, YAML validation, Gitleaks, Bandit, pip-audit, Semgrep, detect-secrets, isolated security audits, and promotion-readiness gate.
 - PR #39 fixed required isolated-security checks for docs-only pull requests; PR #40 added a regression test for that trigger contract; PR #41 and PR #42 refreshed operational status; PR #45 added a synthetic secret-scanner canary and shared fail-closed gate.
+- PR #50 corrected stale CI checkpoint references in this document and the status report.
 
 ## Verified
-- The repository is public. PR #45 merged at `8de5cd214f749951ab487af2923a3330e76f129e`; the follow-up documentation-only commit `26319528761e26bccb598785e062b1a06b9bf64f` passed all five post-merge checks.
+- The repository is public. Current main is `650ad15358f36317d10d31bb3833a39e149b5bd2`; all five post-merge checks observed on that exact SHA passed: tests, YAML validation, Gitleaks, offline regression/evaluator, and Python SAST/secrets/dependency audit.
 - The active `main` ruleset (`25836352`) requires pull requests and six checks: `tests`, `Offline regression and evaluator suites`, `Python static security analysis`, `Dependency vulnerability audit`, `Gitleaks secret scan`, and `Parse workflow and Dependabot YAML`. Required approvals are set to zero; force pushes are blocked. `strict=false` means the PR branch need not be up to date before merge.
 - PR #39 merged a fix so the isolated security workflow reports required checks on docs-only pull requests.
 - Python project sources live under `agent_team/`.
-- On `8de5cd214f749951ab487af2923a3330e76f129e`, the post-merge `tests`, YAML validation, Gitleaks, offline regression/evaluator, and Python SAST/secrets/dependency audit checks all completed successfully. The synthetic canary was detected and the shared gate rejected its finding on PR #45 before merge.
+- The synthetic secret-scanner canary was detected and the shared gate rejected its finding on PR #45 before merge.
 - `agent_team/workflow_store.py` implements durable SQLite queue state; `agent_team/memory_store.py` provides opt-in local memory retrieval.
 - Deployment and systemd files are templates only; no host has been provisioned, and no service has been installed or started.
 - The security workflow on `main` retains the narrow exclusions merged in PR #26. `scripts/check_detect_secrets.py` is the shared fail-closed gate used by the production scan and the synthetic canary test.
@@ -29,7 +30,7 @@ A free-first Python multi-agent workflow (planner → executor → reviewer) wit
 ## Not yet verified / open risks
 1. GitHub Secret Scanning and Push Protection settings remain unverified; do not claim they are enabled until checked in repository settings.
 2. The ruleset's repository-role bypass uses `bypass_mode=always`, and required approvals are zero. Issue #38 tracks this governance tradeoff. Review whether bypass can be narrowed while preserving the intended solo-maintainer workflow.
-3. The ruleset uses `strict=false`; branches need not be up to date with `main` before merging. Decide whether to enable strict checks.
+3. The ruleset uses `strict=false`; branches need not be up to date with `main` before merging.
 4. No live worker or 24/7 deployment exists as far as the available evidence shows.
 5. No external health alert has been configured and test-delivered to a real destination.
 6. No independent off-host backup and operational restore drill has been verified. The included backup/restore scripts and CI tests do not establish off-host recovery.
