@@ -1,8 +1,8 @@
 # Project State
-Last updated: 2026-10-25
+Last updated: 2026-10-26
 Current phase: Phase 2 — durable workflow primitives merged; deployment acceptance remains open
 Repository: ghith93/agent-team-starter
-Current main commit at this state update: `0761339734a7dc8e24830c96c833ef330e28e446`
+Current main commit at this state update: `541a633116ae6b2ff9361afcda139edd347d7136`
 Recovery reference: `backup/pre-audit-2026-10-23`
 
 ## Project purpose
@@ -15,23 +15,27 @@ A free-first Python multi-agent workflow (planner → executor → reviewer) wit
 - PR #28 CI passed on the reviewed head: offline regression/evaluator suite, YAML validation, Gitleaks, Bandit, pip-audit, Semgrep, detect-secrets, isolated security audits, and promotion-readiness gate.
 
 ## Verified
+- The repository is public and `main` pointed to `541a633116ae6b2ff9361afcda139edd347d7136` at the start of this audit.
+- The active `main` ruleset (`25836352`) requires pull requests and six checks: `tests`, `Offline regression and evaluator suites`, `Python static security analysis`, `Dependency vulnerability audit`, `Gitleaks secret scan`, and `Parse workflow and Dependabot YAML`. Required approvals are set to zero; force pushes are blocked. `strict=false` means the PR branch need not be up to date before merge.
+- PR #39 merged a fix so the isolated security workflow reports required checks on docs-only pull requests.
 - Python project sources live under `agent_team/`.
-- Offline regression, YAML validation, security scan, and promotion-readiness workflows exist and passed on PR #28's head.
+- Offline regression, YAML validation, dependency audit, Python static analysis, Semgrep, and Gitleaks checks passed on the current main commit during this audit; the aggregate security scan was still running when recorded.
 - `agent_team/workflow_store.py` implements durable SQLite queue state; `agent_team/memory_store.py` provides opt-in local memory retrieval.
 - Deployment and systemd files are templates only; no host has been provisioned, and no service has been installed or started.
 - The security workflow on `main` retains the narrow exclusions merged in PR #26.
 - FreeLLMAPI integration was previously removed; do not reintroduce it without a new explicit requirement.
 
 ## Not yet verified / open risks
-1. Main-branch ruleset/protection state is not verified. The connected GitHub integration returns HTTP 403 for the branch-protection endpoint; the rulesets endpoint reports that rulesets require GitHub Pro or a public repository for this private repository. Do not make the repository public merely to bypass this limitation.
-2. GitHub Secret Scanning and Push Protection settings are not verified.
-3. No live worker or 24/7 deployment exists as far as the available evidence shows.
-4. No external health alert has been configured and test-delivered to a real destination.
-5. No independent off-host backup and operational restore drill has been verified. The included backup/restore scripts and CI tests do not establish off-host recovery.
-6. SQLite stores task text and local backups in plaintext. Never enqueue credentials, confidential prompts, or private customer data; restrict backup file access and encrypt any external backup destination.
-7. Web fetching still needs network-level egress controls for hostile/public-facing use; application URL validation alone does not fully prevent DNS rebinding.
-8. No root license has been selected; `LICENSE_PENDING.md` is a decision record, not a license.
-9. CI scans do not prove the entire Git history is free of credentials or that provider keys/quotas are valid.
+1. GitHub Secret Scanning and Push Protection settings remain unverified; do not claim they are enabled until checked in repository settings.
+2. The ruleset's repository-role bypass uses `bypass_mode=always`, and required approvals are zero. Issue #38 tracks this governance tradeoff. Review whether bypass can be narrowed while preserving the intended solo-maintainer workflow.
+3. The ruleset uses `strict=false`; branches need not be up to date with `main` before merging. Decide whether to enable strict checks.
+4. No live worker or 24/7 deployment exists as far as the available evidence shows.
+5. No external health alert has been configured and test-delivered to a real destination.
+6. No independent off-host backup and operational restore drill has been verified. The included backup/restore scripts and CI tests do not establish off-host recovery.
+7. SQLite stores task text and local backups in plaintext. Never enqueue credentials, confidential prompts, or private customer data; restrict backup file access and encrypt any external backup destination.
+8. Web fetching still needs network-level egress controls for hostile/public-facing use; application URL validation alone does not fully prevent DNS rebinding.
+9. No root license has been selected; `LICENSE_PENDING.md` is a decision record, not a license.
+10. CI scans do not prove the entire Git history is free of credentials or that provider keys/quotas are valid.
 
 ## Operating constraints
 - Do not commit API keys, tokens, passwords, cookies, recovery codes, or customer data.
@@ -41,7 +45,7 @@ A free-first Python multi-agent workflow (planner → executor → reviewer) wit
 - Do not claim 24/7 availability based on templates or scheduled GitHub Actions.
 
 ## Next actions
-1. Verify repository branch protection and secret-protection settings with authorized GitHub access.
+1. Verify GitHub Secret Scanning and Push Protection settings and review ruleset bypass/freshness policy.
 2. Decide whether/where to host the worker; assess free-tier sleep, quotas, persistent disk, and secret storage before deployment.
 3. Configure an external health check and alert destination only after a real endpoint and destination exist; test notification delivery.
 4. Configure an independent encrypted backup destination and complete a restore drill.
@@ -49,5 +53,5 @@ A free-first Python multi-agent workflow (planner → executor → reviewer) wit
 6. Run a genuine authenticated cross-model evaluation only if existing authorized CLI sessions are available; do not spend paid quota by default.
 
 ## Limits
-- No live model calls, deployment, host provisioning, external alert delivery, independent backup, or account-level security setting changes were performed.
+- No live model calls, deployment, host provisioning, external alert delivery, independent backup, or GitHub Secret Scanning/Push Protection setting changes were performed. The `main` ruleset was read and verified, but its bypass policy has not been changed.
 - Passing CI verifies the tested commit and checks only; it does not prove production reliability, complete history cleanliness, or 24/7 operation.
