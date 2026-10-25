@@ -2,7 +2,7 @@
 Last updated: 2026-10-26
 Current phase: Phase 2 — durable workflow primitives merged; deployment acceptance remains open
 Repository: ghith93/agent-team-starter
-Current main commit at this state update: `541a633116ae6b2ff9361afcda139edd347d7136`
+Current main commit at this state update: `0f46b28ae6b6c624fb54549b2ebbf48474529aa3`
 Recovery reference: `backup/pre-audit-2026-10-23`
 
 ## Project purpose
@@ -13,13 +13,14 @@ A free-first Python multi-agent workflow (planner → executor → reviewer) wit
 - PR #27 added the operational state register, roadmap, iPhone-first runbook, `.gitignore` safeguards, and pending-license decision record.
 - PR #28 added an opt-in SQLite workflow queue with leases, bounded retries, stale-worker fencing, local memory retrieval, CLI queue modes, health/backup/restore helpers, systemd templates, and regression tests.
 - PR #28 CI passed on the reviewed head: offline regression/evaluator suite, YAML validation, Gitleaks, Bandit, pip-audit, Semgrep, detect-secrets, isolated security audits, and promotion-readiness gate.
+- PR #39 fixed required isolated-security checks for docs-only pull requests; PR #40 added a regression test for that trigger contract; PR #41 and PR #42 refreshed operational status and reconciled root state/roadmap documentation.
 
 ## Verified
-- The repository is public and `main` pointed to `541a633116ae6b2ff9361afcda139edd347d7136` at the start of this audit.
+- The repository is public and `main` now points to `0f46b28ae6b6c624fb54549b2ebbf48474529aa3` after PR #42 merged.
 - The active `main` ruleset (`25836352`) requires pull requests and six checks: `tests`, `Offline regression and evaluator suites`, `Python static security analysis`, `Dependency vulnerability audit`, `Gitleaks secret scan`, and `Parse workflow and Dependabot YAML`. Required approvals are set to zero; force pushes are blocked. `strict=false` means the PR branch need not be up to date before merge.
 - PR #39 merged a fix so the isolated security workflow reports required checks on docs-only pull requests.
 - Python project sources live under `agent_team/`.
-- Offline regression, YAML validation, dependency audit, Python static analysis, Semgrep, and Gitleaks checks passed on the current main commit during this audit; the aggregate security scan was still running when recorded.
+- On `0f46b28ae6b6c624fb54549b2ebbf48474529aa3`, the observed `tests`, YAML validation, Gitleaks, and offline regression/evaluator checks passed; the aggregate Python SAST/secrets/dependency audit was still in progress at the last observation. Do not mark all post-merge checks complete until that job finishes.
 - `agent_team/workflow_store.py` implements durable SQLite queue state; `agent_team/memory_store.py` provides opt-in local memory retrieval.
 - Deployment and systemd files are templates only; no host has been provisioned, and no service has been installed or started.
 - The security workflow on `main` retains the narrow exclusions merged in PR #26.

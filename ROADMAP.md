@@ -14,7 +14,7 @@ This roadmap prioritizes evidence, reversible changes, and free/open-source opti
 - [ ] Verify Secret Scanning and Push Protection availability and state.
 - [x] Keep Gitleaks scanning on PRs and run history-aware scans in CI.
 - [ ] Add a synthetic canary test proving the secret scanner fails closed without committing a real credential.
-- [x] Enforce read-only workflow/job permissions and full-SHA pins for external GitHub Actions with regression checks; latest main checks observed 2026-10-25.
+- [x] Enforce read-only workflow/job permissions and full-SHA pins for external GitHub Actions with regression checks; latest main checks observed 2026-10-26.
 - [ ] Decide on a root license after confirming intended reuse/distribution policy.
 
 ## Phase C — Test quality
@@ -43,7 +43,7 @@ This roadmap prioritizes evidence, reversible changes, and free/open-source opti
 - [ ] Keep optional tools isolated, tested, and removable.
 
 ## Phase F — Operational acceptance
-- [x] Offline regression, YAML, Gitleaks, dependency audit, Python static security analysis, and Semgrep passed on main commit `541a633116ae6b2ff9361afcda139edd347d7136`; aggregate security scan was still running when recorded.
+- [x] On main commit `0f46b28ae6b6c624fb54549b2ebbf48474529aa3`, `tests`, YAML validation, Gitleaks, and offline regression/evaluator checks were observed passing; aggregate Python SAST/secrets/dependency audit was still in progress at last check. Recheck the exact commit before claiming complete CI success.
 - [ ] Verify GitHub Secret Scanning and Push Protection settings; review ruleset bypass/freshness policy separately.
 - [ ] Deploy to an explicitly chosen host and verify restart/recovery behavior.
 - [ ] Test external alert delivery.
