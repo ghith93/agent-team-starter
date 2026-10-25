@@ -12,7 +12,7 @@ on:
     branches: [main]
     paths:
       - "agent_team/**"
-      - "web_research/**"
+      - "evaluations/**"
       - "tests/**"
       - "requirements*.txt"
       - ".github/workflows/security-audit-isolated.yml"
