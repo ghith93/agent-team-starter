@@ -1,48 +1,51 @@
 # Roadmap
 
-This roadmap prioritizes evidence, reversible changes, and free/open-source options. A roadmap item is not complete until its test evidence is recorded.
+This roadmap prioritizes evidence, reversible changes, and free/open-source options. A roadmap item is complete only when its evidence is recorded.
 
 ## Phase A — Baseline and documentation
-- [x] Establish a pre-audit recovery branch.
-- [x] Record the current verified state and known unknowns.
-- [x] Add an initial iPhone-friendly runbook.
-- [x] Verify all CI and security workflows on the repair branch (latest recorded run passed).
-- [x] Review .gitignore and environment example; confirm `.env.example` remains trackable.
-- [x] Run Gitleaks against full repository history and working tree in CI; this is not a guarantee that no credential exists outside scanned scope.
+- [x] Establish a pre-audit recovery reference branch (not an independent backup).
+- [x] Record verified state and known unknowns.
+- [x] Add an iPhone-first runbook and license-decision record.
+- [x] Reapply operational documentation on current `main` and preserve the narrowed secret-scanner fix.
+- [x] Review `.gitignore` and keep `.env.example` trackable.
 
 ## Phase B — Repository safeguards
 - [ ] Enable an appropriate main-branch ruleset/protection (require PR and successful checks where supported).
 - [ ] Verify Secret Scanning and Push Protection availability and state.
-- [ ] Keep Gitleaks scanning on pushes and pull requests; separately verify failure behavior with a synthetic test fixture that contains no real credential.
-- [ ] Review permissions and pin third-party GitHub Actions to verified immutable commit SHAs.
-- [ ] Decide on a root license after confirming the intended reuse/distribution policy.
+- [x] Keep Gitleaks scanning on PRs and run history-aware scans in CI.
+- [ ] Add a synthetic canary test proving the secret scanner fails closed without committing a real credential.
+- [ ] Review all third-party GitHub Actions permissions and pin remaining mutable references to verified immutable SHAs.
+- [ ] Decide on a root license after confirming intended reuse/distribution policy.
 
 ## Phase C — Test quality
-- [ ] Keep offline tests deterministic and free of provider API calls.
-- [ ] Add regression tests for URL validation, redirect handling, provider error redaction, and malformed provider responses.
-- [ ] Run Python compilation and YAML parsing in CI.
-- [ ] Generate reports as artifacts without uploading secrets or customer data.
-- [ ] Review dependency audit findings and update only after compatibility tests.
+- [x] Keep offline regression/evaluator tests deterministic and provider-free.
+- [x] Run Python compilation and YAML parsing in CI.
+- [x] Generate deterministic reports as workflow artifacts.
+- [x] Add queue, memory, deployment-preflight, shell-syntax, backup/restore, and CLI regression tests.
+- [x] Run Gitleaks, Bandit, pip-audit, Semgrep, and detect-secrets in CI for the reviewed PR #28 head.
+- [ ] Continue review of scanner findings and dependency updates; CI success is not a blanket security guarantee.
+- [ ] Add any further redirect-handling and malformed-provider-response tests only where current coverage is insufficient.
 
 ## Phase D — Monitoring and recovery
-- [ ] Identify whether the application is a scheduled job, webhook service, or continuously running worker.
-- [ ] Define a minimal health check that does not expose secrets or internal diagnostics.
-- [ ] Add a scheduled external check only after a verified endpoint and alert destination exist.
-- [ ] Add retry with exponential backoff and jitter where safe; cap retries and avoid retrying authentication/configuration errors.
-- [ ] Add a circuit breaker for repeated transient failures if the runtime model requires it.
-- [ ] Select a backup destination separate from the primary repository/account.
-- [ ] Perform and document a restore drill before claiming backup coverage.
-- [ ] Add mobile-friendly recovery instructions and alert delivery test.
+- [x] Add opt-in durable SQLite queue state with worker leases, stale-worker fencing, bounded retries, and terminal failure state.
+- [x] Add local queue health checks and backup/restore scripts with temporary-database tests.
+- [x] Provide systemd unit/timer templates and an iPhone-first deployment preflight/runbook.
+- [ ] Identify/provision a suitable runtime host before enabling a continuous worker.
+- [ ] Select a backup destination separate from the primary repository/account and encrypt it.
+- [ ] Perform and document an operational restore drill from the independent backup destination.
+- [ ] Configure external monitoring and verify that a test alert reaches the intended destination.
+- [ ] Add retry jitter/circuit breaker only if real runtime behavior and failure modes justify it.
 
 ## Phase E — Free/open-source capability review
-- [ ] Compare maintained tools against actual project needs, license, permissions, free-tier quotas, and iPhone usability.
-- [ ] Prefer one tool integration at a time, with a test and rollback plan.
-- [ ] Do not add a continuously running server or paid external dependency merely to satisfy a 24/7 label.
+- [ ] Compare maintained tools against actual needs, license, permissions, free-tier quotas, and iPhone usability.
+- [x] Evaluate Graphify as an optional offline code-graph pilot; keep it nonessential and review output manually.
+- [ ] Run a genuine cross-model quality trial only with authorized existing CLI sessions and a bounded budget; do not use paid APIs by default.
+- [ ] Keep optional tools isolated, tested, and removable.
 
 ## Phase F — Operational acceptance
-- [ ] CI passes on the proposed change.
-- [ ] Security checks have reviewed outcomes; no unexplained findings are suppressed.
-- [ ] Secret protection and branch protection states are recorded.
-- [ ] Monitoring alert delivery is tested.
-- [ ] Backup restoration is tested.
-- [ ] Known limitations and free-tier failure modes are documented.
+- [x] CI and security checks passed on the reviewed PR #28 head.
+- [ ] Verify secret protection and branch protection states.
+- [ ] Deploy to an explicitly chosen host and verify restart/recovery behavior.
+- [ ] Test external alert delivery.
+- [ ] Test off-host backup restoration.
+- [ ] Document known limitations and free-tier failure modes before claiming production readiness.
