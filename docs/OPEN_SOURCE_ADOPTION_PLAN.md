@@ -110,10 +110,10 @@ alternative instead.
    using an authorized target and reviewing every setup change.
 3. Use the expanded offline tooling inventory to check prerequisites without installing
    anything: `python -m agent_team.tooling_audit --json`.
-4. Run the Graphify code-only pilot in an isolated environment; record whether it
-   identifies architecture relationships that existing docs and tests miss.
-5. Inspect the Graphify pilot artifact and decide whether it adds concrete value before
-   adopting Graphify for regular use.
+4. Review `docs/GRAPHIFY_PILOT_RESULTS_2026-10-25.md`; the first zero-API run produced
+   492 nodes and 806 edges, but workflow YAML created noisy communities.
+5. The pilot workflow now excludes `.github/**` in its disposable copy; compare the next
+   graph with the baseline before deciding whether Graphify adds repeatable value.
 6. Continue to use `python run_tests.py` and
    `python evaluations/offline_benchmark.py` for local/offline validation.
    Do not infer production readiness from those checks alone.
