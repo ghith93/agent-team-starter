@@ -51,6 +51,9 @@ A free-first Python multi-agent workflow (planner → executor → reviewer) wit
 - The low-risk path is an existing operator-controlled Linux host with persistent local storage, systemd, restrictive service permissions, and a separately managed alert/backup destination. None is currently provisioned or verified.
 - A serverless alternative (for example, Cloudflare Workers + Queues + D1) is an architecture migration, not a drop-in host: it requires replacing SQLite-specific queue semantics and adding migration, idempotency, failure/retry, security, and recovery tests before acceptance. No Cloudflare account, resource, or migration has been created.
 
+## Zero-cost iPhone execution plan
+- Added `docs/IPHONE_ZERO_COST_COMPLETION_PLAN.md` on feature branch `docs/iphone-zero-cost-completion`. It records the mobile UI checks, evidence standards, free-only operational tests, and hard blockers that cannot be proven from repository access alone. This is documentation, not evidence that those live checks have been performed.
+
 ## Next actions
 1. Verify GitHub Secret Scanning and Push Protection settings and review ruleset bypass/freshness policy.
 2. Decide whether/where to host the worker; assess free-tier sleep, quotas, persistent disk, and secret storage before deployment.
