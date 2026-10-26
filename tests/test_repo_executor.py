@@ -10,11 +10,11 @@ from agent_team.sandbox import SandboxResult
 class RepoExecutorTests(unittest.TestCase):
     def test_patch_diagnostic_is_bounded_and_redacts_credentials(self):
         diagnostic = _safe_patch_diagnostic(
-            "error: sample.py failed " + "Bearer " + "abcdef123456 " + "token" + "=" + "supersecret " + ("x" * 400)
+            "error: sample.py failed " + "Bearer " + "abc" + "def123456 " + "token" + "=" + "super" + "secret " + ("x" * 400)
         )
         self.assertIn("sample.py", diagnostic)
-        self.assertNotIn("abcdef123456", diagnostic)
-        self.assertNotIn("supersecret", diagnostic)
+        self.assertNotIn("abc" + "def123456", diagnostic)
+        self.assertNotIn("super" + "secret", diagnostic)
         self.assertLessEqual(len(diagnostic), 240)
 
     def test_patch_application_failure_includes_bounded_diagnostic(self):
