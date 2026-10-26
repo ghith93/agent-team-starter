@@ -33,6 +33,45 @@ class RouterTests(unittest.TestCase):
         self.assertFalse(router.enable_gemini)
         self.assertEqual(calls, [])
 
+    def test_stage_specific_free_models_are_used_with_global_fallback(self):
+        calls = []
+        def openrouter(key, model, prompt, *, system_prompt=""):
+            calls.append(model)
+            return "ok"
+        router = FreeFirstRouter(
+            gemini_key="", openrouter_key="o", free_models=["openrouter/free"],
+            stage_models={
+                "draft": ["cohere/north-mini-code:free", "openrouter/free"],
+                "review": ["nvidia/nemotron-3-ultra-550b-a55b:free", "openrouter/free"],
+            },
+            openrouter_call=openrouter,
+        )
+        router.ask("draft", stage="draft")
+        router.ask("review", stage="review")
+        router.ask("default")
+        self.assertEqual(calls, [
+            "cohere/north-mini-code:free",
+            "nvidia/nemotron-3-ultra-550b-a55b:free",
+            "openrouter/free",
+        ])
+
+    def test_stage_specific_paid_models_are_rejected(self):
+        with self.assertRaises(ValueError):
+            FreeFirstRouter(
+                free_models=["openrouter/free"],
+                stage_models={"draft": ["provider/paid-model"]},
+            )
+
+    def test_stage_specific_models_can_be_configured_by_environment(self):
+        with patch.dict("os.environ", {
+            "OPENROUTER_FREE_MODELS": "openrouter/free",
+            "OPENROUTER_DRAFT_MODELS": "cohere/north-mini-code:free,openrouter/free",
+        }, clear=False):
+            router = FreeFirstRouter(gemini_key="", openrouter_key="")
+        self.assertEqual(router.stage_models["draft"], ["cohere/north-mini-code:free", "openrouter/free"])
+        self.assertEqual(router.stage_models["review"], ["openrouter/free"])
+
+
 
     def test_falls_back_after_gemini_transient_error(self):
         def bad_gemini(*args):
