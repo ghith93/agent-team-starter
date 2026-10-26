@@ -68,7 +68,7 @@ jobs:
             elif [[ "$variant" == cli-3.32.29* ]]; then
               VARIANT_VERSION="3.32.29"
             fi
-            printf '{"name":"ruflo-remediation-lab","private":true,"version":"1.0.0","dependencies":{"@claude-flow/cli":"%s"}}\\n' "$VARIANT_VERSION" > package.json
+            printf '{"name":"ruflo-remediation-lab","private":true,"version":"1.0.0","dependencies":{"@claude-flow/cli":"%s"}}\n' "$VARIANT_VERSION" > package.json
             if [[ "$variant" == *protobufjs* || "$variant" == targeted-* ]]; then
               npm pkg set 'overrides.protobufjs=7.6.6'
             fi
