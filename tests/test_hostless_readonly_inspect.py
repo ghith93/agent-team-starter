@@ -1,4 +1,9 @@
-from scripts.hostless_readonly_inspect import MAX_LOG_CHARS, redact_text, redact
+from scripts.hostless_readonly_inspect import (
+    MAX_LOG_CHARS,
+    redact_text,
+    redact,
+    summarize_log_processes,
+)
 
 
 def test_redact_text_masks_email_addresses():
@@ -60,3 +65,28 @@ def test_redact_text_masks_access_refresh_and_hyphenated_api_query_tokens():
     assert "access_token=[REDACTED]" in result
     assert "refresh_token=[REDACTED]" in result
     assert "api-key=[REDACTED]" in result
+
+
+
+def test_log_process_summary_identifies_build_only_fallback():
+    processes, contains_runtime = summarize_log_processes([
+        {"process": "build", "log": "build output"},
+        {"process": "build", "log": "more build output"},
+    ])
+    assert processes == ["build"]
+    assert contains_runtime is False
+
+
+def test_log_process_summary_identifies_runtime_stream():
+    processes, contains_runtime = summarize_log_processes([
+        {"process": "build", "log": "build output"},
+        {"process": "worker", "log": "runtime output"},
+    ])
+    assert processes == ["build", "worker"]
+    assert contains_runtime is True
+
+
+def test_log_process_summary_handles_missing_or_malformed_data():
+    assert summarize_log_processes(None) == (None, None)
+    assert summarize_log_processes({"process": "worker"}) == (None, None)
+    assert summarize_log_processes([{"process": 123}, None]) == ([], False)
