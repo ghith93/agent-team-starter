@@ -20,6 +20,10 @@ The repository's manually authorized and scheduled agent workflows now use:
 
 These are role-based starting candidates, not a claim that they always win on this repository's benchmark. The public OpenRouter catalog lists North Mini Code as a free, coding-focused model with a 256K context window and lists Nemotron 3 Ultra as a free reasoning/orchestration model with a 1M context window. Availability and rate limits can change; the fallback alias remains free-only. See [North Mini Code (free)](https://openrouter.ai/cohere/north-mini-code:free), [Nemotron 3 Ultra (free)](https://openrouter.ai/nvidia/nemotron-3-ultra-550b-a55b:free), and [OpenRouter's free model collection](https://openrouter.ai/collections/free-models).
 
+## Benchmark roster (updated 2026-10-26)
+
+The opt-in coding benchmark now pins `cohere/north-mini-code:free`, `qwen/qwen3.8-27b:free`, and `nvidia/nemotron-3-ultra-550b-a55b:free`. The previous run recorded provider errors for Thinking Machines Inkling Small, so it is removed from the default comparison; Cohere is already the coding model used by the patch workflow, while Qwen3.8 27B is currently listed as free by OpenRouter. This is a candidate roster, not a performance claim: rerun the benchmark after parser fixes before promoting a model. Model IDs, pricing, and availability can change. See [Cohere North Mini Code](https://openrouter.ai/cohere/north-mini-code:free), [Qwen3.8 27B (free)](https://openrouter.ai/qwen/qwen3.8-27b:free), and [Nemotron 3 Ultra (free)](https://openrouter.ai/nvidia/nemotron-3-ultra-550b-a55b:free).
+
 ## Privacy and evaluation
 
 - Free endpoints may log or retain prompts according to provider terms. NVIDIA's Nemotron free endpoint explicitly warns against sending confidential information or personal data. The on-demand workflow therefore labels its task input as non-sensitive; do not enable live tasks containing secrets or private customer data.
