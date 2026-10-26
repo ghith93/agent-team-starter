@@ -106,14 +106,14 @@ jobs:
               else:
                   print("Cause details suppressed to avoid leaking task or credential data.")
               Path("agent-task-result.json").write_text(
-                  json.dumps(failure, ensure_ascii=False, indent=2) + "\\n",
+                  json.dumps(failure, ensure_ascii=False, indent=2) + "\n",
                   encoding="utf-8",
               )
               sys.exit(1)
           except Exception as exc:
               print("FAIL: agent team execution failed:", type(exc).__name__)
               Path("agent-task-result.json").write_text(
-                  json.dumps({"ok": False, "cause_type": type(exc).__name__}, ensure_ascii=False, indent=2) + "\\n",
+                  json.dumps({"ok": False, "cause_type": type(exc).__name__}, ensure_ascii=False, indent=2) + "\n",
                   encoding="utf-8",
               )
               sys.exit(1)
