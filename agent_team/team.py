@@ -158,14 +158,14 @@ def run_team(task: str, router: FreeFirstRouter | None = None,
         if stage == "plan":
             prompt = f"Analyze the following user task and create a plan.\n\n<user_task>\n{_escape_untrusted(cleaned_task)}\n</user_task>"
         elif stage == "draft":
-            prompt = (f"Complete the user task using the proposed plan.\n\n<user_task>\n{cleaned_task}\n</user_task>"
+            prompt = (f"Complete the user task using the proposed plan.\n\n<user_task>\n{_escape_untrusted(cleaned_task)}\n</user_task>"
                       f"\n\n<proposed_plan_untrusted>\n{_escape_untrusted(previous['plan'].text)}\n</proposed_plan_untrusted>")
         elif stage == "review":
-            prompt = (f"Review the draft for correctness, unsupported claims, safety, and completeness.\n\n<user_task>\n{cleaned_task}\n</user_task>"
+            prompt = (f"Review the draft for correctness, unsupported claims, safety, and completeness.\n\n<user_task>\n{_escape_untrusted(cleaned_task)}\n</user_task>"
                       f"\n\n<draft_untrusted>\n{_escape_untrusted(previous['draft'].text)}\n</draft_untrusted>")
         else:
             prompt = (f"Produce the final, revised answer to the user. Apply valid review findings; do not merely describe changes.\n\n"
-                      f"<user_task>\n{cleaned_task}\n</user_task>\n\n"
+                      f"<user_task>\n{_escape_untrusted(cleaned_task)}\n</user_task>\n\n"
                       f"<proposed_plan_untrusted>\n{previous['plan'].text}\n</proposed_plan_untrusted>\n\n"
                       f"<original_draft_untrusted>\n{_escape_untrusted(previous['draft'].text)}\n</original_draft_untrusted>\n\n"
                       f"<review_findings_untrusted>\n{_escape_untrusted(previous['review'].text)}\n</review_findings_untrusted>")
