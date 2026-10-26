@@ -151,7 +151,7 @@ def run_sandboxed_command(
                 "--pids-limit=128",
                 "--memory=1g",
                 "--cpus=2",
-                "--tmpfs", "/tmp:rw,nosuid,nodev,noexec,size=256m",
+                "--tmpfs", "/tmp:rw,nosuid,nodev,noexec,size=256m",  # nosec B108: isolated ephemeral container tmpfs, not a host temp directory.
                 "--mount", mount,
                 "--workdir", "/workspace",
                 "--user", f"{os.getuid()}:{os.getgid()}",
