@@ -50,6 +50,14 @@ class WebResearchTests(unittest.TestCase):
         self.assertIn("Hello world", " ".join(p.parts))
         self.assertNotIn("secret", " ".join(p.parts))
 
+
+    def test_mismatched_ignored_tag_closer_does_not_expose_svg_content(self):
+        p = TextExtractor()
+        p.feed("<html><svg><g></script>svg secret</g></svg><p>visible text</p></html>")
+        extracted = " ".join(p.parts)
+        self.assertNotIn("svg secret", extracted)
+        self.assertIn("visible text", extracted)
+
     def test_fetch_fails_closed_without_trusted_egress_proxy(self):
         with patch.dict("os.environ", {}, clear=True), patch("agent_team.web_research._validate_public_url"), patch("agent_team.web_research.requests.Session") as session_factory:
             with self.assertRaisesRegex(ValueError, "Safe page fetching is disabled"):
