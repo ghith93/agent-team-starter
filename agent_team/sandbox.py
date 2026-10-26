@@ -124,6 +124,7 @@ def run_sandboxed_command(
         if validation_name == "pytest":
             dockerfile.append("RUN python -m pip install --no-cache-dir pytest")
         (build_root / "Dockerfile").write_text("\n".join(dockerfile) + "\n", encoding="utf-8")
+        (build_root / "docker-config").mkdir()
         env = _restricted_env(build_root)
         try:
             try:
