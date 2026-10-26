@@ -27,7 +27,7 @@ class TeamMemoryTests(unittest.TestCase):
             }],
         )
         self.assertEqual(result["memory_context_count"], 1)
-        self.assertEqual(len(router.calls), 3)
+        self.assertEqual(len(router.calls), 4)
         for prompt, system_prompt in router.calls:
             self.assertIn("<retrieved_memory_untrusted>", prompt)
             self.assertIn("Retry transient errors only.", prompt)
