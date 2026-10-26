@@ -33,7 +33,7 @@ PATTERNS = [
     (re.compile(r"(?i)\bBearer\s+[^\s,;]+"), "Bearer [REDACTED]"),
     (re.compile(r"(?i)(authorization\s*[:=]\s*)[^\s,;]+"), r"\1[REDACTED]"),
     (re.compile(r"(?i)((?:api[_-]?key|access[_-]?token|refresh[_-]?token|password|secret)\s*[:=]\s*)[^\s,;]+"), r"\1[REDACTED]"),
-    (re.compile(r"(?i)([?&](?:token|key|password|secret|api_key)=)[^&\s]+"), r"\1[REDACTED]"),
+    (re.compile(r"(?i)([?&](?:token|key|password|secret|api[_-]?key|access[_-]?token|refresh[_-]?token)=)[^&\s]+"), r"\1[REDACTED]"),
 ]
 
 def redact_text(value: str) -> str:
