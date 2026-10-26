@@ -1,14 +1,15 @@
 # Supervised repository patch evaluation
 
-\`agent_team.repo_executor.evaluate_patch\` adds a bounded local verification step for a proposed unified diff.
+\`agent_team.repo_executor.evaluate_patch\` provides a bounded local verification step for a proposed unified diff.
 
 ## Safety model
 
 - The original checkout is never modified. Files are copied to a disposable temporary directory, the patch is applied there, and the directory is deleted afterward.
 - Model-supplied shell commands are never executed. Callers can select only \`project-tests\`, \`pytest\`, \`unittest\`, or \`compile\`, each mapped to a fixed argument array.
-- Patches are size-limited; binary patches, traversal, secret-like paths, and \`.github/workflows/**\` changes are rejected.
-- The copy excludes Git metadata, virtual environments, common caches, and common secret/configuration paths.
-- Validation commands have timeouts and output caps. This helper does not provide OS-level sandboxing or network isolation. Run validation only in an appropriately restricted environment and treat project test code as trusted code.
+- The default validation is \`compile\`; this avoids executing newly generated project code by default.
+- Patches are size-limited; binary patches, traversal, secret-like paths, symlink/submodule/rename patches, and \`.github/workflows/**\` changes are rejected.
+- Workspaces containing symlinks are rejected rather than dereferenced. The workspace copy has file-count and byte-size limits and excludes Git metadata, virtual environments, common caches, and common secret/configuration paths.
+- Validation commands have timeouts and output caps. This helper does not provide OS-level sandboxing or network isolation. Optional project test commands execute project code and should only be enabled in an appropriately restricted environment.
 
 ## Example
 
@@ -18,7 +19,7 @@ from agent_team.repo_executor import evaluate_patch
 result = evaluate_patch(
     ".",
     proposed_unified_diff,
-    validations=("project-tests", "compile"),
+    validations=("compile",),
     timeout_seconds=120,
 )
 print(result.to_dict())
