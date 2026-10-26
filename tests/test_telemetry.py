@@ -22,7 +22,7 @@ class FakeRouter:
 class TelemetryTests(unittest.TestCase):
     def test_trace_is_returned_without_logging_by_default(self):
         result = run_team("private task", FakeRouter())
-        self.assertEqual([x["stage"] for x in result["trace"]], ["plan", "draft", "review"])
+        self.assertEqual([x["stage"] for x in result["trace"]], ["plan", "draft", "review", "revise"])
         self.assertTrue(all(x["status"] == "success" for x in result["trace"]))
 
     def test_opt_in_log_contains_metadata_but_not_prompts_or_outputs(self):
@@ -30,7 +30,7 @@ class TelemetryTests(unittest.TestCase):
             path = Path(tmp) / "logs" / "events.jsonl"
             result = run_team("SECRET TASK", FakeRouter(), telemetry_path=path)
             rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
-            self.assertEqual(len(rows), 3)
+            self.assertEqual(len(rows), 4)
             self.assertEqual(rows[0]["stage"], "plan")
             self.assertIn("duration_ms", rows[0])
             raw = path.read_text(encoding="utf-8")
