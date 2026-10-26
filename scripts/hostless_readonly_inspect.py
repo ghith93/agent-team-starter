@@ -119,6 +119,7 @@ def wait_for_target_deployment(worker_path: str):
             found = True
             target_status = match.get("status")
             if target_status not in {
+                "DEPLOYMENT_QUEUED", "QUEUED", "PENDING",
                 "BUILD_STARTED", "BUILDING", "DEPLOYING", "DEPLOYMENT_IN_PROGRESS"
             }:
                 break
@@ -131,9 +132,16 @@ def wait_for_target_deployment(worker_path: str):
         "waited_seconds": round(time.monotonic() - started, 1),
         "target_deployment_found": found,
         "target_deployment_status": target_status,
-        "note": "wait limit reached" if time.monotonic() >= deadline and target_status in {
-            "BUILD_STARTED", "BUILDING", "DEPLOYING", "DEPLOYMENT_IN_PROGRESS"
-        } or not found else None,
+        "note": "wait limit reached" if (
+            time.monotonic() >= deadline
+            and (
+                not found
+                or target_status in {
+                    "DEPLOYMENT_QUEUED", "QUEUED", "PENDING",
+                    "BUILD_STARTED", "BUILDING", "DEPLOYING", "DEPLOYMENT_IN_PROGRESS"
+                }
+            )
+        ) else None,
     }
 
 
