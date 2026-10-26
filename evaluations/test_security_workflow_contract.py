@@ -104,12 +104,34 @@ class SecurityWorkflowContractTests(unittest.TestCase):
                 )
                 for block_index, entries in enumerate(self._permission_blocks(source)):
                     with self.subTest(workflow=path.name, permission_block=block_index):
+                        # Only the separately gated patch-publication job may write, and it
+                        # receives exactly the three permissions needed to open a PR.
+                        if path.name == "repository-patch-proposal.yml" and block_index == 2:
+                            self.assertEqual(
+                                entries,
+                                [("contents", "write"), ("pull-requests", "write"), ("actions", "read")],
+                            )
+                            continue
                         for permission, level in entries:
                             self.assertIn(
                                 level,
                                 ("read", "none"),
                                 f"{permission} permission must not grant write access",
                             )
+
+    def test_patch_pr_write_scope_is_separately_gated(self):
+        source = (WORKFLOWS_DIR / "repository-patch-proposal.yml").read_text(encoding="utf-8")
+        self.assertIn("create-pull-request:", source)
+        self.assertIn("if: inputs.authorize_open_pr == true && inputs.validation_level != 'compile' && inputs.authorize_test_execution == true && needs.propose-and-validate.result == 'success'", source)
+        generation_job = source.split("  create-pull-request:", 1)[0]
+        self.assertIn("  propose-and-validate:", generation_job)
+        self.assertIn("      contents: read", generation_job)
+        self.assertNotIn("      contents: write", generation_job)
+        self.assertNotIn("      pull-requests: write", generation_job)
+        self.assertIn("persist-credentials: false", source)
+        self.assertIn("Candidate code will not be executed in this job.", source)
+        self.assertIn('if "tests" in parts or "test" in parts or path.name.lower().startswith("test_"):', source)
+        self.assertIn('{"requirements.txt", "pyproject.toml", "setup.py", "setup.cfg", "pipfile", "poetry.lock", "uv.lock", "dockerfile"}', source)
 
     def test_permission_contract_rejects_write_scopes(self):
         fixtures = (

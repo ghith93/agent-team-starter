@@ -42,3 +42,20 @@ This is a proposal-and-compile-check workflow, not a merge bot. It does not chan
 ## Agent-team review loop
 
 The task workflow runs four bounded stages: planner, executor, independent reviewer, and final reviser. The reviser receives the original task, plan, draft, and review findings and produces the final answer rather than returning the unreviewed draft. This improves feedback integration but adds one provider request per task and remains model-based; it is not a substitute for project tests, source verification, or human review. All provider calls remain behind the existing explicit workflow authorization and free-model-only configuration.
+
+
+## Validated patch publication as a pull request
+
+The manual patch workflow has a separate `authorize_open_pr` checkbox, disabled by default. A PR is attempted only when the provider call was authorized, the selected sandboxed project-test or unittest validation passed (compile-only is not sufficient), test execution was separately authorized, and PR publication was separately authorized. The publication job receives a short-lived workflow token with `contents: write` and `pull-requests: write`; the model-generation and candidate-test job has read-only repository permissions and no persisted checkout credentials.
+
+The publication job downloads the validation artifact, independently checks its status, validation results, size and changed paths, applies the patch and verifies the resulting file list. It does not execute candidate code in the publication job. The patch is committed to a dedicated branch and opened as a PR; no automatic merge is performed. A PR is a proposal, not an assertion that the change is correct. Review the diff and CI results before merging. Workflow-file changes remain blocked by the patch evaluator. The publication job also refuses to create a PR if the patch changes test files or dependency/build manifests; those changes remain available for manual artifact review instead.
+
+The PR publication token is not passed to the provider or into the Docker test container. Keep candidate code and tests out of any step that has write credentials. The job still relies on GitHub Actions and the runner's security boundary; this is defense in depth, not a guarantee against every platform compromise.
+
+## Repeatable free-model coding benchmark
+
+Run `python -m agent_team.benchmark` locally for a dry-run summary; it makes zero provider requests. The fixed benchmark set is in `benchmarks/coding_tasks.json` and contains three small, deterministic fixtures: whitespace normalization, numeric clamping, and word counting. The benchmark scores a task only when the fixed fixture tests pass and the model has not modified test files.
+
+To run the benchmark, both `AUTHORIZE_BENCHMARK_PROVIDER_CALLS=true` and `AUTHORIZE_BENCHMARK_TEST_EXECUTION=true` are required, and `OPENROUTER_API_KEY` must be present. The manual GitHub Actions workflow requires two separate authorization checkboxes and compares three configured free routes: `cohere/north-mini-code:free`, `nvidia/nemotron-3-ultra-550b-a55b:free`, and `openrouter/free`. This is 9 logical model/task pairs; the router may retry a transient provider failure once, so the maximum is 18 HTTP requests. There is no paid-model fallback. Results are uploaded as a one-day artifact; the workflow is never scheduled automatically.
+
+A score is only evidence for these fixtures and test conditions, not a general ranking of coding ability. The alias `openrouter/free` may resolve to different underlying models over time, and free model availability and quotas change. Test containers run without network access, but Docker image builds install dependencies before candidate code runs and may use the network.

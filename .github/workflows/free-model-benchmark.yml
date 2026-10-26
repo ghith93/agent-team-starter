@@ -1,0 +1,67 @@
+name: Free-model coding benchmark (explicit opt-in)
+
+on:
+  workflow_dispatch:
+    inputs:
+      authorize_provider_calls:
+        description: "Explicitly authorize up to 9 benchmark task/model requests; free quota may be consumed"
+        required: true
+        default: false
+        type: boolean
+      authorize_test_execution:
+        description: "Explicitly authorize fixture tests in Docker; tests run with network disabled"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: free-model-coding-benchmark
+  cancel-in-progress: false
+
+jobs:
+  authorization-required:
+    if: inputs.authorize_provider_calls != true || inputs.authorize_test_execution != true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Explain authorization gates
+        run: echo "No provider call was made. Both authorize_provider_calls and authorize_test_execution must be enabled."
+
+  run-benchmark:
+    if: inputs.authorize_provider_calls == true && inputs.authorize_test_execution == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      OPENROUTER_FREE_MODELS: cohere/north-mini-code:free,nvidia/nemotron-3-ultra-550b-a55b:free,openrouter/free
+      AUTHORIZE_BENCHMARK_PROVIDER_CALLS: "true"
+      AUTHORIZE_BENCHMARK_TEST_EXECUTION: "true"
+    steps:
+      - name: Checkout source without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # pinned checkout action
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # pinned setup-python action
+        with:
+          python-version: "3.11"
+
+      - name: Install project dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Run fixed free-model coding benchmark
+        run: python -m agent_team.benchmark --run --validation unittest --models "cohere/north-mini-code:free,nvidia/nemotron-3-ultra-550b-a55b:free,openrouter/free"
+
+      - name: Upload benchmark report for one day
+        if: always() && hashFiles('free-model-benchmark-result.json') != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # pinned upload-artifact action
+        with:
+          name: free-model-benchmark-result
+          path: free-model-benchmark-result.json
+          if-no-files-found: error
+          retention-days: 1

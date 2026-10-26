@@ -26,6 +26,11 @@ on:
         required: true
         default: false
         type: boolean
+      authorize_open_pr:
+        description: "Create a pull request only after a successful patch validation; no auto-merge"
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -87,3 +92,101 @@ jobs:
           path: repository-patch-result.json
           if-no-files-found: error
           retention-days: 1
+
+  create-pull-request:
+    needs: propose-and-validate
+    if: inputs.authorize_open_pr == true && inputs.validation_level != 'compile' && inputs.authorize_test_execution == true && needs.propose-and-validate.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: read
+    steps:
+      - name: Checkout source without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # pinned checkout action
+        with:
+          persist-credentials: false
+
+      - name: Download the validated patch artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download "$GITHUB_RUN_ID" --name repository-patch-result --dir patch-artifact
+
+      - name: Re-validate artifact and apply patch without executing candidate code
+        run: |
+          python - <<'PY'
+          import json
+          import subprocess
+          from pathlib import Path, PurePosixPath
+
+          report_path = Path("patch-artifact/repository-patch-result.json")
+          report = json.loads(report_path.read_text(encoding="utf-8"))
+          if report.get("ok") is not True or report.get("status") != "validated":
+              raise SystemExit("Refusing PR: patch artifact is not marked validated.")
+          patch = report.get("patch")
+          paths = report.get("changed_paths")
+          validations = report.get("validations")
+          if not isinstance(patch, str) or not patch or len(patch.encode("utf-8")) > 200_000:
+              raise SystemExit("Refusing PR: invalid or oversized patch.")
+          if not isinstance(paths, list) or not paths or len(paths) > 50:
+              raise SystemExit("Refusing PR: invalid changed-path list.")
+          if not isinstance(validations, list) or not validations or any(not isinstance(v, dict) or v.get("passed") is not True for v in validations):
+              raise SystemExit("Refusing PR: one or more validations did not pass.")
+          protected_parts = {".git", ".ssh", ".aws", ".azure", ".config", "secrets", "credentials"}
+          protected_names = {".env", ".env.local", ".env.production", "id_rsa", "id_ed25519"}
+          normalized = set()
+          for raw in paths:
+              if not isinstance(raw, str) or not raw or "\\" in raw:
+                  raise SystemExit("Refusing PR: malformed path.")
+              path = PurePosixPath(raw)
+              parts = [part.lower() for part in path.parts]
+              if path.is_absolute() or any(part in ("", ".", "..") for part in parts):
+                  raise SystemExit("Refusing PR: unsafe path.")
+              if any(part in protected_parts for part in parts) or path.name.lower() in protected_names or path.suffix.lower() in {".pem", ".key", ".p12", ".pfx"}:
+                  raise SystemExit("Refusing PR: protected path.")
+              if parts[0] == ".github" and len(parts) > 1 and parts[1] == "workflows":
+                  raise SystemExit("Refusing PR: workflow changes require separate review.")
+              if "tests" in parts or "test" in parts or path.name.lower().startswith("test_"):
+                  raise SystemExit("Refusing PR: test-file changes require separate review.")
+              if path.name.lower() in {"requirements.txt", "pyproject.toml", "setup.py", "setup.cfg", "pipfile", "poetry.lock", "uv.lock", "dockerfile"}:
+                  raise SystemExit("Refusing PR: dependency/build configuration changes require separate review.")
+              normalized.add(path.as_posix())
+          Path("proposed.patch").write_text(patch, encoding="utf-8")
+          subprocess.run(["git", "apply", "--check", "proposed.patch"], check=True, timeout=30)
+          subprocess.run(["git", "apply", "proposed.patch"], check=True, timeout=30)
+          Path("proposed.patch").unlink()
+          import shutil
+          shutil.rmtree("patch-artifact")
+          tracked = subprocess.run(["git", "diff", "--name-only"], check=True, capture_output=True, text=True, timeout=30).stdout.splitlines()
+          untracked = subprocess.run(["git", "ls-files", "--others", "--exclude-standard"], check=True, capture_output=True, text=True, timeout=30).stdout.splitlines()
+          changed = sorted(set(tracked) | set(untracked))
+          if set(changed) != normalized:
+              raise SystemExit("Refusing PR: applied paths do not match the validated report.")
+          subprocess.run(["git", "diff", "--check"], check=True, timeout=30)
+          if not changed:
+              raise SystemExit("Refusing PR: patch produced no changes.")
+          print("Patch applied. Candidate code will not be executed in this job.")
+          PY
+
+      - name: Commit validated patch
+        run: |
+          rm -rf patch-artifact proposed.patch
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "agent-patch-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git add --all
+          git commit -m "agent: propose validated repository patch"
+
+      - name: Push branch and open pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh auth setup-git
+          BRANCH="agent-patch-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git push --set-upstream origin "$BRANCH"
+          gh pr create \
+            --base "$GITHUB_REF_NAME" \
+            --head "$BRANCH" \
+            --title "Agent-proposed validated patch (run $GITHUB_RUN_ID)" \
+            --body "Automated proposal generated by the explicitly authorized free-model patch workflow. Validation passed in a disposable workspace. Review the diff and CI results before merging; no automatic merge is performed. Workflow run: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
