@@ -19,6 +19,18 @@ class FakeRouter:
 
 
 class TeamTests(unittest.TestCase):
+    def test_stage_name_is_passed_to_stage_aware_router(self):
+        class StageAwareRouter:
+            def __init__(self):
+                self.stages = []
+            def ask(self, prompt, *, system_prompt="", stage=None):
+                self.stages.append(stage)
+                return SimpleNamespace(provider="test", model="stage-aware", text=f"{stage} output")
+        router = StageAwareRouter()
+        result = run_team("task", router=router)
+        self.assertEqual(router.stages, ["plan", "draft", "review", "revise"])
+        self.assertEqual([item["model"] for item in result["trace"]], ["stage-aware"] * 4)
+
     def test_successful_run_has_review_and_revision_stages(self):
         router = FakeRouter()
         result = run_team("test task", router)
