@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "description": "Small deterministic coding tasks. Benchmark score is based on passing the existing fixture tests without modifying them.",
+  "tasks": [
+    {
+      "id": "normalize-spaces",
+      "fixture": "benchmarks/fixtures/normalize_spaces",
+      "task": "Implement normalize_spaces(value: str) in strings.py so it trims leading/trailing whitespace and collapses every run of whitespace to one ASCII space. Preserve the empty-string result for empty or whitespace-only input. Do not modify tests or unrelated files."
+    },
+    {
+      "id": "clamp-value",
+      "fixture": "benchmarks/fixtures/clamp_value",
+      "task": "Implement clamp(value, low, high) in math_utils.py. Return low when value is below low, high when above high, and value otherwise. Raise ValueError when low > high. Do not modify tests or unrelated files."
+    },
+    {
+      "id": "word-count",
+      "fixture": "benchmarks/fixtures/word_count",
+      "task": "Fix word_count(text) in text_stats.py to count non-empty words separated by arbitrary whitespace (spaces, tabs, newlines); empty or whitespace-only text must return zero. Do not modify tests or unrelated files."
+    }
+  ]
+}
