@@ -36,7 +36,7 @@ class TelemetryTests(unittest.TestCase):
             raw = path.read_text(encoding="utf-8")
             self.assertNotIn("SECRET TASK", raw)
             self.assertNotIn("private output", raw)
-            self.assertEqual(len(result["trace"]), 3)
+            self.assertEqual(len(result["trace"]), 4)
 
     def test_failure_trace_is_preserved_and_logged(self):
         with tempfile.TemporaryDirectory() as tmp:
