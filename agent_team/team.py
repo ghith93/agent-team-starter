@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from .router import FreeFirstRouter, ModelResult
+from .tool_runtime import ToolRegistry, run_tool_loop
 
 
 MAX_TASK_CHARS = 12000
@@ -126,11 +127,15 @@ def _memory_block(memory_context: list[dict] | None) -> str:
 
 def run_team(task: str, router: FreeFirstRouter | None = None,
              telemetry_path: str | Path | None = None,
-             memory_context: list[dict] | None = None) -> dict:
+             memory_context: list[dict] | None = None,
+             tool_registry: ToolRegistry | None = None,
+             max_tool_calls: int = 3) -> dict:
     if not isinstance(task, str) or not task.strip():
         raise ValueError("Task must be a non-empty string.")
     if len(task) > 12000:
         raise ValueError("Task is too long (maximum 12000 characters).")
+    if isinstance(max_tool_calls, bool) or not isinstance(max_tool_calls, int) or not 0 <= max_tool_calls <= 5:
+        raise ValueError("max_tool_calls must be from 0 to 5.")
     memory_suffix = _memory_block(memory_context)
     router = router or FreeFirstRouter()
     run_id = str(uuid.uuid4())
@@ -161,21 +166,36 @@ def run_team(task: str, router: FreeFirstRouter | None = None,
 
         prompt += memory_suffix
         started = time.monotonic()
+        tool_result = None
         try:
-            result = _ask_stage(router, prompt, system_prompts[stage])
+            if stage == "draft" and tool_registry is not None:
+                tool_result = run_tool_loop(
+                    prompt, router, tool_registry,
+                    system_prompt=system_prompts[stage], max_tool_calls=max_tool_calls,
+                )
+                result = ModelResult(
+                    provider=tool_result.provider, model=tool_result.model, text=tool_result.text,
+                )
+            else:
+                result = _ask_stage(router, prompt, system_prompts[stage])
             if not isinstance(getattr(result, "text", None), str) or not result.text.strip():
                 raise ValueError(f"{stage} returned empty text.")
             if len(result.text) > MAX_STAGE_OUTPUT_CHARS:
                 raise ValueError(f"{stage} output exceeded the {MAX_STAGE_OUTPUT_CHARS}-character limit.")
             previous[stage] = result
             completed[stage] = _result_dict(result)
-            trace.append({
+            event = {
                 "run_id": run_id, "stage": stage, "status": "success",
                 "duration_ms": round((time.monotonic() - started) * 1000, 2),
                 "provider": str(getattr(result, "provider", "unknown")),
                 "model": str(getattr(result, "model", "unknown")),
                 "output_chars": len(result.text),
-            })
+            }
+            if tool_result is not None:
+                tool_metadata = [{"name": item["name"], "ok": item["ok"]} for item in tool_result.tool_calls]
+                event["tool_calls"] = tool_metadata
+                completed[stage]["tool_calls"] = tool_metadata
+            trace.append(event)
         except Exception as exc:
             trace.append({
                 "run_id": run_id, "stage": stage, "status": "failure",
@@ -201,7 +221,8 @@ def run_team(task: str, router: FreeFirstRouter | None = None,
         "trace": trace,
         "total_duration_ms": round((time.monotonic() - run_started) * 1000, 2),
         "memory_context_count": len(memory_context or []),
-        "note": "Trace contains stage metadata only. Review and revision are model-based; they do not replace tests, source verification, or human approval.",
+        "tools_enabled": tool_registry is not None,
+        "note": "Review and revision are model-based, not proof of correctness. Optional tools are read-only and allowlisted; public-web tools require a trusted egress proxy. Tool outputs remain untrusted, and tool use does not replace tests, source verification, or human approval.",
     }
     if telemetry_warning:
         result["telemetry_warning"] = telemetry_warning
