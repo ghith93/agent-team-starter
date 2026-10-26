@@ -27,9 +27,10 @@ class PatchTaskTests(unittest.TestCase):
         self.assertEqual(extract_patch(response).strip(), patch)
 
     def test_extracts_diff_from_language_labeled_fence(self):
-        fence = chr(96) * 3
         patch = "--- a/README.md\n+++ b/README.md\n@@ -1 +1 @@\n-old\n+new"
+        fence = chr(96) * 3
         self.assertEqual(extract_patch(fence + "diff\n" + patch + "\n" + fence).strip(), patch)
+
     def test_extracts_diff_after_short_preamble(self):
         patch = "--- a/README.md\n+++ b/README.md\n@@ -1 +1 @@\n-old\n+new\n"
         response = "Here is the requested change:\n\n" + patch
@@ -90,6 +91,18 @@ class PatchTaskTests(unittest.TestCase):
             fake_value = "dummy" + "-value"
             (root / "settings.py").write_text(
                 f"{key_name} = '{fake_value}'\nnormal = True\n",
+                encoding="utf-8",
+            )
+            context = collect_repository_context(root)
+            self.assertIn("[REDACTED: credential-like line]", context)
+            self.assertNotIn(fake_value, context)
+
+    def test_context_redacts_quoted_json_credentials(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            fake_value = "dummy-secret-value-12345"
+            (root / "settings.json").write_text(
+                '{"api_key": "' + fake_value + '", "safe": true}\n',
                 encoding="utf-8",
             )
             context = collect_repository_context(root)
