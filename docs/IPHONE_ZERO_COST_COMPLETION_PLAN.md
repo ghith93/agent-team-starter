@@ -95,3 +95,10 @@ The official overview currently advertises an always-on app and worker with no c
 
 Until a free host and compatible durable storage are actually provisioned and tested, the repository can still run finite CI tests and scheduled, bounded maintenance checks on GitHub Actions. These are not a continuously running worker and must not be represented as 24/7 runtime.
 
+
+
+## Decision update — replace Hostless for this project
+
+Decision: do not continue using Hostless as the project's operational target. The Hostless diagnostic workflow is being retired because its aggregate runtime-log endpoint repeatedly returns HTTP 500. For occasional, manually initiated work, use GitHub Actions workflow `.github/workflows/on-demand-agent-task.yml` and the [on-demand runbook](ON_DEMAND_GITHUB_ACTIONS_RUNBOOK.md). It needs no permanent Linux host and is not a 24/7 worker. Live OpenRouter calls are gated by an explicit input and can consume provider quota; no live call is performed by CI.
+
+This retires the repository integration only. Repository access cannot cancel an external Hostless subscription, delete a Hostless account/resource, or stop an external deployment. If a resource exists, the account owner must stop/delete it in the Hostless dashboard and separately verify billing and GitHub access. The local SQLite durable queue remains a separate optional mode and is not persisted across GitHub-hosted runner jobs.
