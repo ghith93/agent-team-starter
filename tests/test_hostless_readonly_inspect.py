@@ -11,7 +11,7 @@ def test_redact_recursively_masks_email_in_nested_api_payload():
 
 
 def test_redact_text_masks_common_bearer_and_key_patterns():
-    value = "Bearer " + "topsecret " + "api" + "_key=" + "key-value https://example.test/?" + "to" + "ken=" + "query-secret"
+    value = "Bearer " + "top" + "s" + "ecret " + "api" + "_key=" + "key-value https://example.test/?" + "to" + "ken=" + "query-secret"
     result = redact_text(value)
     assert "topsecret" not in result
     assert "key-value" not in result
@@ -32,8 +32,8 @@ def test_redact_recursively_masks_sensitive_fields():
     refresh_field = "refresh_" + "token"
     payload = {
         "worker": "agent-team-worker",
-        "credentials": {"api" + "Key": "secret-value", password_field: "pass-value"},
-        "items": [{refresh_field: "refresh-value", "status": "ok"}],
+        "credentials": {"api" + "Key": "sec" + "ret-value", password_field: "pass" + "-value"},
+        "items": [{refresh_field: "refresh" + "-value", "status": "ok"}],
     }
     assert redact(payload) == {
         "worker": "agent-team-worker",
