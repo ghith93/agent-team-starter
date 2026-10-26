@@ -64,7 +64,7 @@ def _restricted_env(home: Path) -> dict[str, str]:
 
 
 def _run_docker(args: tuple[str, ...], *, cwd: Path, timeout: int, env: dict[str, str]) -> subprocess.CompletedProcess:
-    return subprocess.run(
+    return subprocess.run(  # nosec B603: fixed internal Docker commands; shell=False and no model-supplied command text.
         args,
         cwd=cwd,
         stdin=subprocess.DEVNULL,
