@@ -20,6 +20,15 @@ MAX_CHANGED_PATHS = 50
 MAX_TIMEOUT_SECONDS = 300
 MAX_WORKSPACE_FILES = 5000
 MAX_WORKSPACE_BYTES = 100_000_000
+MAX_PATCH_DIAGNOSTIC_CHARS = 240
+
+
+def _safe_patch_diagnostic(value: object) -> str:
+    """Keep useful patch-tool diagnostics bounded and redact credential-like values."""
+    detail = " ".join(str(value).split())
+    detail = re.sub(r"(?i)bearer\s+[A-Za-z0-9._~+/-]+=*", "Bearer [REDACTED]", detail)
+    detail = re.sub(r"(?i)(api[_ -]?key|token|authorization)(\s*[:=]\s*)[^,; ]+", r"\1\2[REDACTED]", detail)
+    return detail[:MAX_PATCH_DIAGNOSTIC_CHARS]
 VALIDATION_COMMANDS = {
     "project-tests": ("python", "run_tests.py"),
     "pytest": ("python", "-m", "pytest", "-q"),
@@ -212,8 +221,11 @@ def evaluate_patch(
             check=False, shell=False,
         )
         if check.returncode:
-            return PatchEvaluation(False, False, changed_paths, (),
-                                   "Patch did not apply cleanly; validation was not run.")
+            detail = _safe_patch_diagnostic(check.stdout)
+            message = "Patch did not apply cleanly; validation was not run."
+            if detail:
+                message += f" Diagnostic: {detail}"
+            return PatchEvaluation(False, False, changed_paths, (), message)
         applied = subprocess.run(  # nosec B603: fixed git command; shell=False.
             ("git", "apply", "--whitespace=error", str(patch_file)),
             cwd=candidate, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
