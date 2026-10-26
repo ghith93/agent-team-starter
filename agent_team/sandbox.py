@@ -125,7 +125,6 @@ def run_sandboxed_command(
             dockerfile.append("RUN python -m pip install --no-cache-dir pytest")
         (build_root / "Dockerfile").write_text("\n".join(dockerfile) + "\n", encoding="utf-8")
         env = _restricted_env(build_root)
-        image_built = False
         try:
             try:
                 built = _run_docker(
@@ -141,8 +140,6 @@ def run_sandboxed_command(
                 return SandboxResult(False, None, False, f"Sandbox image build failed ({type(exc).__name__}).")
             if built.returncode != 0:
                 return SandboxResult(False, built.returncode, False, _redact_output(built.stdout + "\nSandbox image build failed."))
-            image_built = True
-
             mount = f"type=bind,src={candidate_path},dst=/workspace,rw"
             run_args = (
                 docker, "run", "--rm", "--name", container_name,
@@ -153,7 +150,7 @@ def run_sandboxed_command(
                 "--pids-limit=128",
                 "--memory=1g",
                 "--cpus=2",
-                "--tmpfs", "/tmp:rw,nosuid,nodev,size=256m",
+                "--tmpfs", "/tmp:rw,nosuid,nodev,noexec,size=256m",
                 "--mount", mount,
                 "--workdir", "/workspace",
                 "--user", f"{os.getuid()}:{os.getgid()}",
@@ -186,11 +183,10 @@ def run_sandboxed_command(
                 except (OSError, subprocess.TimeoutExpired):
                     pass
         finally:
-            if image_built:
-                try:
-                    _run_docker(
-                        (docker, "image", "rm", "--force", image_tag),
-                        cwd=build_root, timeout=20, env=env,
-                    )
-                except (OSError, subprocess.TimeoutExpired):
-                    pass
+            try:
+                _run_docker(
+                    (docker, "image", "rm", "--force", image_tag),
+                    cwd=build_root, timeout=20, env=env,
+                )
+            except (OSError, subprocess.TimeoutExpired):
+                pass
