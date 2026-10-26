@@ -83,3 +83,13 @@ A free-first Python multi-agent workflow (planner → executor → reviewer) wit
 - Post-merge checks on `4d9ecbe7d2beed917e949cd9ae4780cb62dc54c9` were still running at the time of this update. Verify their final conclusions before treating the merged commit as fully green.
 - This code change does not resolve the external Hostless aggregate runtime-logs HTTP 500 in issue #73, and does not prove network-level egress policy, a persistent production host, independent encrypted backup/restore, external alert delivery, or GitHub Secret Scanning/Push Protection settings.
 - The Notion Custom Agent search could not run because the connected workspace requires a Business plan or higher. No metered external research or live model provider calls were launched.
+
+
+## Operating-scope decision — 2026-10-26
+
+- Owner decision: do not block progress on a continuously running 24/7 worker; a bounded, on-demand pilot is acceptable.
+- No operator-managed Linux host is available. Do not install systemd templates or claim host-level restart/recovery evidence.
+- The existing queue supports finite local execution with `--run-next` or `--worker --max-jobs 1`, but those commands still require an environment that can run Python and access the configured provider. The current Hostless read-only workflow only inspects deployment status/logs; it does not execute user tasks.
+- Therefore the immediate target is a safe, manually initiated, bounded pilot—not a 24/7 service. Keep live model calls disabled until the execution path, provider/quota, and task data are explicitly approved. Do not represent CI or a read-only deployment inspection as proof that an agent task ran.
+- Current `main` checkpoint: `6bef4442cbb381161796d8eaf63eb6a4019edc39`. All five check runs observed on this exact SHA completed successfully: tests, offline regression/evaluator suites, YAML validation, Gitleaks, and Python SAST/secrets/dependency audit.
+- Still unresolved for any hosted pilot: Hostless aggregate runtime logs return HTTP 500 (issue #73); current deployment activation after the latest main commit has not been re-verified; network-level egress enforcement, independent encrypted backup/restore, external alert delivery, and authoritative GitHub Secret Scanning/Push Protection settings remain unverified.
