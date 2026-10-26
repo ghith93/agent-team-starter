@@ -5,6 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from agent_team.tool_runtime import ToolRegistry, create_default_registry, run_tool_loop
+from agent_team.team import run_team
 
 
 class FakeRouter:
@@ -89,6 +90,26 @@ class ToolRuntimeTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             run_tool_loop("task", router, registry, system_prompt="Role", max_tool_calls=6)
         self.assertEqual(router.calls, [])
+
+    def test_run_team_can_enable_tools_only_for_draft_stage(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "README.md").write_text("A project overview.\\n", encoding="utf-8")
+            registry = create_default_registry(root)
+            router = FakeRouter([
+                "Plan: inspect the README.",
+                json.dumps({"tool": "read_repository_file", "arguments": {"path": "README.md"}}),
+                json.dumps({"final": "Draft based on the README."}),
+                "Review: the draft is accurate.",
+                "Final answer incorporating review.",
+            ])
+            result = run_team("Summarize the repository", router=router, tool_registry=registry)
+            self.assertEqual(result["final"], "Final answer incorporating review.")
+            self.assertTrue(result["tools_enabled"])
+            self.assertEqual(result["draft"]["text"], "Draft based on the README.")
+            self.assertEqual(result["draft"]["tool_calls"], [{"name": "read_repository_file", "ok": True}])
+            self.assertEqual(result["trace"][1]["tool_calls"], [{"name": "read_repository_file", "ok": True}])
+            self.assertEqual(len(router.calls), 5)
 
     def test_plain_text_model_output_is_supported(self):
         registry = ToolRegistry()
