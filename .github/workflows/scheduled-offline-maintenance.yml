@@ -1,0 +1,63 @@
+name: Scheduled offline maintenance
+
+on:
+  # Weekly, provider-free maintenance. This workflow never calls a hosted model.
+  schedule:
+    - cron: "17 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scheduled-offline-maintenance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline-maintenance:
+    name: Offline tests and agent readiness
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: "3.11"
+
+      - name: Install project dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Run offline release gates
+        run: python run_tests.py
+
+      - name: Compile Python sources
+        run: python -m compileall -q agent_team evaluations tests
+
+      - name: Validate agent skills
+        run: python -m agent_team.skill_lint . --json
+
+      - name: Inventory available tooling without network access
+        run: python -m agent_team.tooling_audit --json
+
+      - name: Check provider configuration without making requests
+        run: python -m agent_team.cli --check-config
+
+      - name: Run deterministic offline benchmark
+        run: python evaluations/offline_benchmark.py
+
+      - name: Upload offline maintenance reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: scheduled-offline-maintenance-report
+          path: |
+            evaluations/results/offline_deterministic_report.json
+            evaluations/results/security_audit.json
+            evaluations/results/offline_security_audit.json
+          if-no-files-found: ignore
+          retention-days: 7
