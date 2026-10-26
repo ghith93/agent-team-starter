@@ -91,18 +91,31 @@ jobs:
           except TeamExecutionError as exc:
               print("FAIL: agent team stopped at stage:", exc.stage)
               cause = exc.cause
+              failure = {"ok": False, "failed_stage": exc.stage, "cause_type": type(cause).__name__}
               print("Cause type:", type(cause).__name__)
               if isinstance(cause, ProviderError):
                   if cause.status_code is not None:
+                      category = classify_http_error(cause.status_code)
+                      failure["provider_http_status"] = cause.status_code
+                      failure["provider_error_category"] = category
                       print("Provider HTTP status:", cause.status_code)
-                      print("Provider error category:", classify_http_error(cause.status_code))
+                      print("Provider error category:", category)
                   else:
+                      failure["provider_error_category"] = "network_or_protocol_or_empty_response"
                       print("Provider error category: network_or_protocol_or_empty_response")
               else:
                   print("Cause details suppressed to avoid leaking task or credential data.")
+              Path("agent-task-result.json").write_text(
+                  json.dumps(failure, ensure_ascii=False, indent=2) + "\n",
+                  encoding="utf-8",
+              )
               sys.exit(1)
           except Exception as exc:
               print("FAIL: agent team execution failed:", type(exc).__name__)
+              Path("agent-task-result.json").write_text(
+                  json.dumps({"ok": False, "cause_type": type(exc).__name__}, ensure_ascii=False, indent=2) + "\n",
+                  encoding="utf-8",
+              )
               sys.exit(1)
 
           expected = ["plan", "draft", "review", "revise"]
@@ -139,7 +152,7 @@ jobs:
           PY
 
       - name: Upload task result for one day
-        if: success() && hashFiles('agent-task-result.json') != ''
+        if: always() && hashFiles('agent-task-result.json') != ''
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: agent-task-result
