@@ -31,6 +31,16 @@ class RepoExecutorTests(unittest.TestCase):
             self.assertIn("sample.py", result.message)
             self.assertIn("Diagnostic:", result.message)
 
+    def test_rejects_malformed_pseudo_file_headers(self):
+        patch = "--- FILE: sample.py ---\n+++ FILE: sample.py +++\n@@ -1 +1 @@\n-old\n+new\n"
+        with self.assertRaisesRegex(PatchRejected, "Malformed old-file header"):
+            _validate_patch(patch)
+
+    def test_rejects_mismatched_old_and_new_paths(self):
+        patch = "--- a/old.py\n+++ b/new.py\n@@ -1 +1 @@\n-old\n+new\n"
+        with self.assertRaisesRegex(PatchRejected, "same path"):
+            _validate_patch(patch)
+
     def test_rejects_parent_traversal(self):
         patch = "--- a/../outside.py\n+++ b/../outside.py\n@@ -1 +1 @@\n-a\n+b\n"
         with self.assertRaises(PatchRejected):
