@@ -1,6 +1,6 @@
 # Agent Team Starter v0.9.1-rc16
 
-A small, free-first Python agent workflow: **Planner → Executor → Reviewer → Reviser**. Designed for offline testing, explicit provider routing, traceable failures, and privacy-conscious optional telemetry. It is not an autonomous computer-use agent: it cannot access your filesystem, browser, or accounts through model prompts, and it does not execute generated code.
+A small, free-first Python agent workflow: **Planner → Executor → Reviewer → Reviser**. Designed for offline testing, explicit provider routing, traceable failures, and privacy-conscious optional telemetry. By default it has no filesystem or browser tools; an explicit opt-in enables bounded read-only repository and proxy-gated public-web tools. It does not provide general computer use or execute generated code.
 
 ## What's improved in v0.9
 - Adds a transparent CSV benchmark scorer with strict field/range validation and a hard rejection gate for any declared security failure.
@@ -42,6 +42,8 @@ python -m agent_team.cli --check-config
 python -m agent_team.cli "Draft a checklist for validating a small online business idea"
 # Task file and optional metadata-only telemetry
 python -m agent_team.cli --task-file task.txt --telemetry logs/events.jsonl
+# Explicitly enable read-only repository tools and proxy-gated public-web research
+python -m agent_team.cli --tools "Research this repository and summarize the relevant files"
 ```
 
 No keys means no provider requests. OpenRouter accepts only `openrouter/free` or model IDs ending in `:free`. A free label is not a guarantee of uptime, quota, or absence of ancillary costs. `--check-config` does not test credentials or billing.
@@ -68,7 +70,7 @@ Operational references:
 
 The systemd files are templates and are not automatically installed or running. SQLite stores task text in plaintext; never enqueue credentials, private customer data, or confidential prompts. Backups also contain task text. A persistent worker requires a host you control, protected provider credentials, monitoring, and tested recovery. A lease cannot guarantee exactly-once external provider calls after a crash.
 
-## Result contract
+## Optional bounded tools\n\nThe `--tools` flag enables allowlisted repository search/read and proxy-gated public-web search/fetch during the draft stage. It is off by default, bounded to a small number of tool calls, and can add provider requests. Public-web access requires the administrator-controlled `AGENT_TEAM_TRUSTED_EGRESS_PROXY` environment variable. See [the tool runtime guide](docs/SAFE_TOOL_RUNTIME.md).\n\n## Result contract
 Successful `run_team()` results include `ok`, `run_id`, `task`, `final`, `plan`, `draft`, `review`, `revision`, `trace`, `total_duration_ms`, and a limitation note. `final` is the final revision informed by the review stage. Review and revision are model-generated and are not proof of correctness. The fourth stage adds one provider request per authorized task. On a stage failure, `TeamExecutionError` exposes the failed stage, successful prior outputs, and trace.
 
 ## Privacy and security boundaries
