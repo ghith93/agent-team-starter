@@ -117,6 +117,15 @@ def gemini_chat(api_key: str, model: str, prompt: str, timeout: int = 45, *, sys
     return text.strip()
 
 
+def _safe_failure_hint(exc: BaseException, sensitive_values: tuple[str, ...] = ()) -> str:
+    """Expose a short actionable provider hint without leaking credentials or large bodies."""
+    detail = " ".join(str(exc).split())
+    for secret in sorted((value for value in sensitive_values if value), key=len, reverse=True):
+        detail = detail.replace(secret, "[REDACTED]")
+    detail = re.sub(r"(?i)(bearer\s+)[A-Za-z0-9._~+/-]+=*", r"\1[REDACTED]", detail)
+    detail = re.sub(r"(?i)(api[_ -]?key|token|authorization)(\s*[:=]\s*)[^,; ]+", r"\1\2[REDACTED]", detail)
+    return detail[:120]
+
 class FreeFirstRouter:
     def __init__(
         self,
@@ -208,14 +217,18 @@ class FreeFirstRouter:
                 return ModelResult("Gemini", self.gemini_model,
                                    self._call_provider_with_retry(self.gemini_call, (self.gemini_key, self.gemini_model, prompt), system_prompt))
             except ProviderError as exc:
-                failures.append(f"Gemini: {classify_http_error(exc.status_code) if exc.status_code else type(exc).__name__}" )
+                category = classify_http_error(exc.status_code) if exc.status_code else type(exc).__name__
+                hint = _safe_failure_hint(exc, (self.gemini_key,))
+                failures.append(f"Gemini: {category}" + (f" — {hint}" if hint and hint != category else ""))
         if self.openrouter_key:
             for model in self.stage_models.get(stage, self.free_models):
                 try:
                     return ModelResult("OpenRouter", model,
                                        self._call_provider_with_retry(self.openrouter_call, (self.openrouter_key, model, prompt), system_prompt))
                 except ProviderError as exc:
-                    failures.append(f"{model}: {classify_http_error(exc.status_code) if exc.status_code else type(exc).__name__}")
+                    category = classify_http_error(exc.status_code) if exc.status_code else type(exc).__name__
+                    hint = _safe_failure_hint(exc, (self.openrouter_key,))
+                    failures.append(f"{model}: {category}" + (f" — {hint}" if hint and hint != category else ""))
                     # Authentication/payment failures usually affect the whole key/account.
                     if exc.status_code in (401, 403, 402):
                         break
