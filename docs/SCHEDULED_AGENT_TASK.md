@@ -14,7 +14,7 @@ Before enabling live scheduled execution:
 2. Add repository Actions variable `SCHEDULED_AGENT_TASK` containing the recurring task. Treat this variable as visible to repository maintainers; do not put private or sensitive data in it. The task is limited to 5,000 characters.
 3. Only after you explicitly authorize recurring provider calls, add repository Actions variable `ENABLE_SCHEDULED_AGENT_RUN` with value `true`.
 
-If the opt-in variable is absent or not `true`, the scheduled multi-agent job is skipped and no provider request is made. If the API secret is missing, the job exits before invoking the team. When enabled, the planner, executor, and reviewer use the configured free-first OpenRouter route; free-model availability is not guaranteed, and provider limits may still apply.
+If the opt-in variable is absent or not `true`, the scheduled multi-agent job is skipped and no provider request is made. If the API secret is missing, the job exits before invoking the team. When enabled, the planner, executor, reviewer, and final revision stage use the configured free-first OpenRouter route; free-model availability is not guaranteed, and provider limits may still apply.
 
 Successful output is uploaded as an artifact retained for one day. The workflow does not commit generated output or modify repository files. Review results manually before using them.
 

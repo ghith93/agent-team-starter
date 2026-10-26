@@ -19,22 +19,26 @@ class FakeRouter:
 
 
 class TeamTests(unittest.TestCase):
-    def test_successful_run_has_three_stages(self):
+    def test_successful_run_has_review_and_revision_stages(self):
         router = FakeRouter()
         result = run_team("test task", router)
-        self.assertEqual(len(router.calls), 3)
+        self.assertEqual(len(router.calls), 4)
         self.assertEqual(result["plan"]["text"], "stage-1")
         self.assertEqual(result["draft"]["text"], "stage-2")
         self.assertEqual(result["review"]["text"], "stage-3")
+        self.assertEqual(result["revision"]["text"], "stage-4")
         self.assertTrue(result["ok"])
-        self.assertEqual(result["final"], result["draft"]["text"])
+        self.assertEqual(result["final"], result["revision"]["text"])
         self.assertTrue(result["run_id"])
         self.assertGreaterEqual(result["total_duration_ms"], 0)
         self.assertIn("stage-1", router.calls[1]["prompt"])
         self.assertIn("stage-2", router.calls[2]["prompt"])
+        self.assertIn("stage-3", router.calls[3]["prompt"])
+        self.assertIn("final, revised answer", router.calls[3]["prompt"])
         self.assertIn("untrusted data", router.calls[0]["system_prompt"])
         self.assertIn("execution agent", router.calls[1]["system_prompt"])
         self.assertIn("independent reviewer", router.calls[2]["system_prompt"])
+        self.assertIn("final revision agent", router.calls[3]["system_prompt"])
         self.assertNotIn("You are the planning agent", router.calls[0]["prompt"])
         self.assertNotIn("You are the execution agent", router.calls[1]["prompt"])
 
@@ -59,7 +63,7 @@ class TeamTests(unittest.TestCase):
         with patch("agent_team.team._write_events", side_effect=OSError("private path detail")):
             result = run_team("test task", router, telemetry_path="unused.jsonl")
         self.assertTrue(result["ok"])
-        self.assertEqual(result["final"], "stage-2")
+        self.assertEqual(result["final"], "stage-4")
         self.assertEqual(result["telemetry_warning"], "Telemetry write failed (OSError).")
         self.assertNotIn("private path detail", str(result))
 

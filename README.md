@@ -1,6 +1,6 @@
 # Agent Team Starter v0.9.1-rc16
 
-A small, free-first Python agent workflow: **Planner → Executor → Reviewer**. Designed for offline testing, explicit provider routing, traceable failures, and privacy-conscious optional telemetry. It is not an autonomous computer-use agent: it cannot access your filesystem, browser, or accounts through model prompts, and it does not execute generated code.
+A small, free-first Python agent workflow: **Planner → Executor → Reviewer → Reviser**. Designed for offline testing, explicit provider routing, traceable failures, and privacy-conscious optional telemetry. It is not an autonomous computer-use agent: it cannot access your filesystem, browser, or accounts through model prompts, and it does not execute generated code.
 
 ## What's improved in v0.9
 - Adds a transparent CSV benchmark scorer with strict field/range validation and a hard rejection gate for any declared security failure.
@@ -69,7 +69,7 @@ Operational references:
 The systemd files are templates and are not automatically installed or running. SQLite stores task text in plaintext; never enqueue credentials, private customer data, or confidential prompts. Backups also contain task text. A persistent worker requires a host you control, protected provider credentials, monitoring, and tested recovery. A lease cannot guarantee exactly-once external provider calls after a crash.
 
 ## Result contract
-Successful `run_team()` results include `ok`, `run_id`, `task`, `final`, `plan`, `draft`, `review`, `trace`, `total_duration_ms`, and a limitation note. `final` is the draft, not a merged rewrite by the reviewer. Review is model-generated and is not proof of correctness. On a stage failure, `TeamExecutionError` exposes the failed stage, successful prior outputs, and trace.
+Successful `run_team()` results include `ok`, `run_id`, `task`, `final`, `plan`, `draft`, `review`, `revision`, `trace`, `total_duration_ms`, and a limitation note. `final` is the final revision informed by the review stage. Review and revision are model-generated and are not proof of correctness. The fourth stage adds one provider request per authorized task. On a stage failure, `TeamExecutionError` exposes the failed stage, successful prior outputs, and trace.
 
 ## Privacy and security boundaries
 - Telemetry is disabled unless a path is explicitly provided. It excludes task text and model outputs, but provider/model identifiers and timing can still be sensitive.
@@ -118,7 +118,7 @@ Run `python evaluations/security_audit.py`. It scans source-like project files f
 
 ## Instruction boundaries (rc12+)
 
-Planner, Executor, and Reviewer role policies are sent using provider-native system-instruction fields (OpenRouter `system` message and Gemini `systemInstruction`). The task and previous-stage content remain separate user content and are labeled as untrusted in stage prompts. This improves instruction separation but does not guarantee prompt-injection resistance; live adversarial evaluation is still required. Any task sent to a configured hosted provider is transmitted to that provider. Do not submit secrets or sensitive data unless you have reviewed the provider's terms and are authorized to share it.
+Planner, Executor, Reviewer, and Reviser role policies are sent using provider-native system-instruction fields (OpenRouter `system` message and Gemini `systemInstruction`). The task and previous-stage content remain separate user content and are labeled as untrusted in stage prompts. This improves instruction separation but does not guarantee prompt-injection resistance; live adversarial evaluation is still required. Any task sent to a configured hosted provider is transmitted to that provider. Do not submit secrets or sensitive data unless you have reviewed the provider's terms and are authorized to share it.
 
 ## Release ZIP hygiene (rc10+)
 

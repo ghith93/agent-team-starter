@@ -17,7 +17,7 @@ from .workflow_store import WorkflowStateError, WorkflowStore
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Free-first Planner → Executor → Reviewer agent team")
+    parser = argparse.ArgumentParser(description="Free-first Planner → Executor → Reviewer → Reviser agent team")
     parser.add_argument("task", nargs="*", help="Task text (omit when using --task-file)")
     parser.add_argument("--task-file", type=Path, help="Read task text from a UTF-8 file")
     parser.add_argument("--check-config", action="store_true", help="Report configured provider names only; makes no API calls")
