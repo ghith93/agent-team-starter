@@ -112,3 +112,20 @@ The two zero-finding candidates use these lockfile-only overrides: `protobufjs@7
 ### Final audit disposition
 
 **Metadata-only dependency audit: complete for the 12 tested candidates. Ruflo production approval: not granted.** The best observed audit result is zero reported advisories in the synthetic lockfile graph with the aligned core/resources 2.8.0 or 2.9.0 override. Before any runtime adoption, create a disposable, unprivileged compatibility test with synthetic inputs, no secrets, no repository write credentials, and explicit API/behavior tests; independently review the remaining moderate advisory surface in the Ruflo dependency tree and rerun the audit immediately before any promotion.
+
+
+## Compatibility audit correction — global OpenTelemetry overrides are negative controls
+
+The 12-candidate audit returned zero npm advisory findings for the global OpenTelemetry core/resources 2.8.0 and 2.9.0 overrides. A follow-up review of the resolved lockfiles found dependency-range conflicts, so these zero-count results must **not** be described as viable remediation candidates:
+
+- The 2.8.0 candidate forces OpenTelemetry core/resources 2.8.0 while multiple OpenTelemetry packages in the same resolved graph declare an exact dependency on 2.9.0. This violates the dependency manifest's declared version contract.
+- The 2.9.0 candidate aligns with the OpenTelemetry packages that require 2.9.0, but the lockfile shows `agentdb@3.0.0-alpha.20` declares optional dependency `@opentelemetry/resources@^1.25.0`; forcing the globally resolved resources package to 2.9.0 violates that declared major-version range. The old core/resources graph also has consumers expecting the 1.x family.
+- `npm install --package-lock-only` allows these overrides to produce a lockfile; that is not equivalent to checking API/behavior compatibility. A zero audit count only means the specific lockfile graph did not match the advisories returned by npm at that time.
+
+The workflow was corrected to remove the 2.8.0 global override from future runs and rename the 2.9.0 global override as a `negative-control` experiment. It remains useful for demonstrating how an over-broad override can make advisory counts look clean while breaking declared dependency contracts.
+
+### Revised conclusion
+
+The best **plausible audit-only candidate** remains the targeted protobufjs/zod/sharp overrides plus the Jaeger propagator and SDK Node version adjustments (six moderate findings), but it is still not runtime-approved. The remaining findings include Ruflo/agentdb advisories and old OpenTelemetry core/resources pulled in for compatibility. Resolve these by updating or replacing the consumers that require 1.x, or by using parent-scoped overrides that preserve declared ranges; do not force a global major-version replacement merely to reach zero findings.
+
+Ruflo is not approved for production. No runtime dependency changes were made. Any compatibility work must be isolated, unprivileged, use synthetic inputs, and run explicit tests before promotion.
