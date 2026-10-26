@@ -72,8 +72,33 @@ def get_json(path: str):
                 return {"status": response.status, "error": "response was not valid JSON"}
             return {"status": response.status, "data": redact(data)}
     except HTTPError as exc:
-        # Deliberately do not emit response bodies; they may contain sensitive details.
-        return {"status": exc.code, "error": "Hostless API request failed; inspect status and token scopes"}
+        # Keep only a small allowlist of structured diagnostics. Never emit the
+        # raw body, headers, or arbitrary provider fields into workflow artifacts.
+        details = {}
+        try:
+            raw_error = exc.read(32_000)
+            parsed_error = json.loads(raw_error.decode("utf-8"))
+            if isinstance(parsed_error, dict):
+                for key in ("statusCode", "code", "error", "message", "requestId"):
+                    value = parsed_error.get(key)
+                    if isinstance(value, (str, int, float)) and not isinstance(value, bool):
+                        details[key] = redact_text(str(value))[:500]
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            pass
+        headers = exc.headers or {}
+        request_id = next(
+            (headers.get(name) for name in ("x-request-id", "request-id", "cf-ray") if headers.get(name)),
+            None,
+        )
+        if request_id:
+            details["response_request_id"] = redact_text(str(request_id))[:200]
+        result = {
+            "status": exc.code,
+            "error": "Hostless API request failed; inspect sanitized error details",
+        }
+        if details:
+            result["error_details"] = details
+        return result
     except (URLError, TimeoutError) as exc:
         return {"status": None, "error": f"network error: {type(exc).__name__}"}
 
@@ -233,9 +258,10 @@ def main() -> int:
                 active_deployment == latest_deployment_id
                 if active_deployment and latest_deployment_id else None
             ),
-            "worker_commit_matches_latest_deployment": (
-                worker_commit == latest_commit
-                if worker_commit and latest_commit else None
+            "worker_reported_commit": worker_commit,
+            "worker_commit_comparison_note": (
+                "Worker metadata may describe configured source state rather than the active deployment; "
+                "use the deployment record and activeDeployment for deployment identity."
             ),
         },
         "checks": {
