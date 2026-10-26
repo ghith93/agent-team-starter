@@ -1,6 +1,11 @@
 name: Ruflo protobufjs remediation lab
 
 on:
+  push:
+    branches:
+      - "audit/ruflo-protobufjs-remediation-lab"
+    paths:
+      - ".github/workflows/ruflo-dependency-remediation-lab.yml"
   pull_request:
     paths:
       - ".github/workflows/ruflo-dependency-remediation-lab.yml"
