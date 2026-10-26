@@ -125,7 +125,7 @@ class ToolRuntimeTests(unittest.TestCase):
         self.assertEqual(result.text, "Handled as untrusted data.")
         self.assertIn("&lt;/task_untrusted&gt;", router.calls[0]["prompt"])
         self.assertIn("&lt;/tool_observations_untrusted&gt;", router.calls[1]["prompt"])
-        self.assertNotIn("</tool_observations_untrusted>", router.calls[1]["prompt"])
+        self.assertEqual(router.calls[1]["prompt"].count("</tool_observations_untrusted>"), 1)
 
     def test_plain_text_model_output_is_supported(self):
         registry = ToolRegistry()
