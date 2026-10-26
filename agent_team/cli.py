@@ -73,7 +73,9 @@ def main(argv=None):
     router = FreeFirstRouter()
     if args.check_config:
         print(json.dumps({
-            "configured_providers": (["Gemini"] if router.gemini_key else []) + (["OpenRouter"] if router.openrouter_key else []),
+            "configured_providers": (["Gemini"] if router.enable_gemini and router.gemini_key else []) + (["OpenRouter"] if router.openrouter_key else []),
+            "gemini_enabled": router.enable_gemini,
+            "gemini_key_present_but_disabled": bool(router.gemini_key) and not router.enable_gemini,
             "gemini_model_configured": bool(router.gemini_model),
             "openrouter_free_models": router.free_models,
             "live_check_performed": False,
