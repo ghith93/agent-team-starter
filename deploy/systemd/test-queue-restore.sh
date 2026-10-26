@@ -12,10 +12,6 @@ if [[ ! -x "$PYTHON" ]]; then
   echo "Restore test failed: configured Python interpreter is not executable." >&2
   exit 2
 fi
-if [[ ! -f "$QUEUE_DB" ]]; then
-  echo "Restore test skipped: queue database has not been created yet."
-  exit 0
-fi
 if [[ ! -d "$BACKUP_DIR" ]]; then
   echo "Restore test failed: backup directory is missing." >&2
   exit 1
