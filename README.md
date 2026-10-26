@@ -1,6 +1,6 @@
 # Agent Team Starter v0.9.1-rc16
 
-A small, free-first Python agent workflow: **Planner → Executor → Reviewer → Reviser**. Designed for offline testing, explicit provider routing, traceable failures, and privacy-conscious optional telemetry. It is not an autonomous computer-use agent: it cannot access your filesystem, browser, or accounts through model prompts, and it does not execute generated code.
+A small, free-first Python agent workflow: **Planner → Executor → Reviewer → Reviser**. Designed for offline testing, explicit provider routing, traceable failures, and privacy-conscious optional telemetry. By default it has no filesystem or browser tools; an explicit opt-in enables bounded read-only repository and proxy-gated public-web tools. It does not provide general computer use or execute generated code.
 
 ## What's improved in v0.9
 - Adds a transparent CSV benchmark scorer with strict field/range validation and a hard rejection gate for any declared security failure.
