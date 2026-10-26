@@ -135,3 +135,8 @@ Run `python evaluations/archive_audit.py PATH_TO_ZIP` to check ZIP paths, duplic
 ## On-demand execution without a hosting provider
 
 For occasional tasks, use [the GitHub Actions on-demand runner](.github/workflows/on-demand-agent-task.yml) and its [runbook](docs/ON_DEMAND_GITHUB_ACTIONS_RUNBOOK.md). It runs only after manual dispatch, requires an explicit Boolean authorization before any live OpenRouter calls, and stores its result in a one-day artifact. It does not run continuously or preserve the SQLite queue between jobs. Use only non-sensitive task input.
+
+
+## Live provider smoke test and go-live checklist
+
+Use [the explicit opt-in live smoke workflow](.github/workflows/live-provider-smoke.yml) to verify one real four-stage task using the `OPENROUTER_API_KEY` Actions secret. It publishes metadata only and does not deploy a service. Follow the [live smoke and go-live runbook](docs/LIVE_SMOKE_AND_GO_LIVE.md) for setup, privacy boundaries, and remaining deployment requirements.
