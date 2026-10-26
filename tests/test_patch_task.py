@@ -109,6 +109,24 @@ class PatchTaskTests(unittest.TestCase):
             self.assertIn("[REDACTED: credential-like line]", context)
             self.assertNotIn(fake_value, context)
 
+    def test_context_redacts_multiline_json_and_yaml_credentials(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            json_sample = "json-secret-value-12345"
+            yaml_sample = "yaml-secret-value-67890"
+            (root / "settings.json").write_text(
+                '{\n  "' + "api" + "_key" + '":\n    "' + json_sample + '",\n  "safe": true\n}\n',
+                encoding="utf-8",
+            )
+            (root / "settings.yaml").write_text(
+                "service:\n  " + "pass" + "word:\n    " + yaml_sample + "\n  mode: safe\n",
+                encoding="utf-8",
+            )
+            context = collect_repository_context(root)
+            self.assertIn("[REDACTED: credential-like file]", context)
+            self.assertNotIn(json_sample, context)
+            self.assertNotIn(yaml_sample, context)
+
 
 if __name__ == "__main__":
     unittest.main()
