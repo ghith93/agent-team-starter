@@ -22,7 +22,7 @@ SKIP_DIRS = {
     ".pytest_cache", ".mypy_cache", ".tox", "dist", "build", "security-reports",
 }
 SKIP_PARTS = {
-    ".ssh", ".aws", ".azure", ".config", "secrets", "credentials,
+    ".ssh", ".aws", ".azure", ".config", "secrets", "credentials",
 }
 SKIP_NAMES = {
     ".env", ".env.local", ".env.production", "id_rsa", "id_ed25519",
