@@ -120,6 +120,7 @@ def run_sandboxed_command(
             "ENV PIP_DISABLE_PIP_VERSION_CHECK=1 PIP_NO_CACHE_DIR=1 PYTHONDONTWRITEBYTECODE=1 PYTHONIOENCODING=utf-8",
             "COPY requirements.txt /opt/agent-test/requirements.txt",
             "RUN python -m pip install --no-cache-dir -r /opt/agent-test/requirements.txt",
+            "RUN mkdir -p /run/agent-tmp",
         ]
         if validation_name == "pytest":
             dockerfile.append("RUN python -m pip install --no-cache-dir pytest")
