@@ -39,7 +39,7 @@ PATTERNS = [
 def redact_text(value: str) -> str:
     if TOKEN:
         value = value.replace(TOKEN, "[REDACTED_HOSTLESS_TOKEN]")
-    value = re.sub(r"(?i)\\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\b", "[REDACTED_EMAIL]", value)
+    value = re.sub(r"(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", "[REDACTED_EMAIL]", value)
     for pattern, replacement in PATTERNS:
         value = pattern.sub(replacement, value)
     return value[:MAX_LOG_CHARS] + ("\n[TRUNCATED]" if len(value) > MAX_LOG_CHARS else "")
