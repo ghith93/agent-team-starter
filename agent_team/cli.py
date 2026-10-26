@@ -13,6 +13,7 @@ from pathlib import Path
 from .memory_store import MemoryStore
 from .router import FreeFirstRouter, ProviderError
 from .team import MAX_TASK_CHARS, TeamExecutionError, run_team
+from .tool_runtime import create_default_registry
 from .workflow_store import WorkflowStateError, WorkflowStore
 
 
@@ -22,6 +23,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--task-file", type=Path, help="Read task text from a UTF-8 file")
     parser.add_argument("--check-config", action="store_true", help="Report configured provider names only; makes no API calls")
     parser.add_argument("--telemetry", type=Path, help="Opt in to metadata-only JSONL telemetry")
+    parser.add_argument("--tools", action="store_true", help="Enable bounded read-only repository tools and proxy-gated public-web research")
     parser.add_argument("--memory-db", type=Path, help="Opt in to local memory retrieval from this SQLite database")
     parser.add_argument("--memory-query", help="Explicit keyword query for notes sent to the model provider")
     parser.add_argument("--memory-limit", type=int, default=3, help="Maximum notes to retrieve (1-5)")
@@ -39,7 +41,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _run_with_lease_heartbeat(store: WorkflowStore, job: dict, lease_seconds: int, router):
+def _run_with_lease_heartbeat(store: WorkflowStore, job: dict, lease_seconds: int, router, tool_registry=None):
     stop = threading.Event()
     lease_lost = threading.Event()
     interval = max(0.5, min(30.0, lease_seconds / 3))
@@ -57,7 +59,7 @@ def _run_with_lease_heartbeat(store: WorkflowStore, job: dict, lease_seconds: in
     thread = threading.Thread(target=heartbeat, name="queue-lease-heartbeat", daemon=True)
     thread.start()
     try:
-        result = run_team(job["task"], router)
+        result = run_team(job["task"], router, tool_registry=tool_registry)
     finally:
         stop.set()
         thread.join(timeout=interval + 1)
@@ -110,6 +112,9 @@ def main(argv=None):
     if not (args.run_next or args.worker) and not task.strip():
         print('Provide task text or --task-file. Use --check-config for a no-network check.', file=sys.stderr)
         return 2
+    if args.enqueue and args.tools:
+        print("--tools is not needed when enqueueing; enable it when running queued tasks.", file=sys.stderr)
+        return 2
     if (args.enqueue or args.run_next or args.worker) and (args.memory_db or args.memory_query):
         print("Queue mode cannot be combined with --memory-db/--memory-query; enqueue only non-sensitive task text.", file=sys.stderr)
         return 2
@@ -128,6 +133,7 @@ def main(argv=None):
     if (args.run_next or args.worker) and (args.retry_delay_seconds < 0 or args.retry_delay_seconds > 3600):
         print("--retry-delay-seconds must be from 0 to 3600.", file=sys.stderr)
         return 2
+    tool_registry = create_default_registry(Path.cwd()) if args.tools else None
     if args.enqueue:
         try:
             store = WorkflowStore(args.queue_db)
@@ -154,7 +160,7 @@ def main(argv=None):
                 captured_out, captured_err = io.StringIO(), io.StringIO()
                 nested_args = ["--queue-db", str(args.queue_db), "--run-next",
                                "--lease-seconds", str(args.lease_seconds),
-                               "--retry-delay-seconds", str(args.retry_delay_seconds)]
+                               "--retry-delay-seconds", str(args.retry_delay_seconds)]\n                if args.tools:\n                    nested_args.append("--tools")
                 with contextlib.redirect_stdout(captured_out), contextlib.redirect_stderr(captured_err):
                     code = main(nested_args)
                 output = captured_out.getvalue().strip()
@@ -206,7 +212,7 @@ def main(argv=None):
             print(json.dumps({"ok": True, "claimed": False, "note": "No queued job is ready."}, ensure_ascii=False))
             return 0
         try:
-            result = _run_with_lease_heartbeat(store, job, args.lease_seconds, router)
+            result = _run_with_lease_heartbeat(store, job, args.lease_seconds, router, tool_registry=tool_registry)
             metadata = {
                 "run_id": result.get("run_id"),
                 "stage_count": len(result.get("trace", [])),
@@ -256,7 +262,7 @@ def main(argv=None):
             print(f"Could not read local memory: {type(exc).__name__}", file=sys.stderr)
             return 2
     try:
-        result = run_team(task, router, telemetry_path=args.telemetry, memory_context=memory_context)
+        result = run_team(task, router, telemetry_path=args.telemetry, memory_context=memory_context, tool_registry=tool_registry)
     except (ProviderError, ValueError, TeamExecutionError) as exc:
         payload = {"ok": False, "error": str(exc)}
         if isinstance(exc, TeamExecutionError):
