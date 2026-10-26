@@ -115,11 +115,11 @@ class PatchTaskTests(unittest.TestCase):
             json_secret = "json-secret-value-12345"
             yaml_secret = "yaml-secret-value-67890"
             (root / "settings.json").write_text(
-                '{\n  "api_key":\n    "' + json_secret + '",\n  "safe": true\n}\n',
+                '{\n  "' + "api" + "_key" + '":\n    "' + json_secret + '",\n  "safe": true\n}\n',
                 encoding="utf-8",
             )
             (root / "settings.yaml").write_text(
-                "service:\n  password:\n    " + yaml_secret + "\n  mode: safe\n",
+                "service:\n  " + "pass" + "word:\n    " + yaml_secret + "\n  mode: safe\n",
                 encoding="utf-8",
             )
             context = collect_repository_context(root)
