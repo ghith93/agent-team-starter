@@ -12,6 +12,11 @@ on:
         required: true
         default: false
         type: boolean
+      enable_tools:
+        description: "Enable bounded read-only repository and public-web tools; web use requires a trusted proxy secret"
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -37,6 +42,8 @@ jobs:
     env:
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       OPENROUTER_FREE_MODELS: openrouter/free
+      ENABLE_AGENT_TOOLS: ${{ inputs.enable_tools }}
+      AGENT_TEAM_TRUSTED_EGRESS_PROXY: ${{ secrets.AGENT_TEAM_TRUSTED_EGRESS_PROXY }}
       TASK_INPUT: ${{ inputs.task }}
     steps:
       - name: Checkout source
@@ -62,6 +69,7 @@ jobs:
 
           from agent_team.router import ProviderError, FreeFirstRouter, classify_http_error
           from agent_team.team import TeamExecutionError, run_team
+          from agent_team.tool_runtime import create_default_registry
 
           task = os.environ.get("TASK_INPUT", "").strip()
           if not task:
@@ -75,7 +83,8 @@ jobs:
               sys.exit(1)
 
           try:
-              result = run_team(task, router=FreeFirstRouter())
+              registry = create_default_registry(".") if os.environ.get("ENABLE_AGENT_TOOLS") == "true" else None
+              result = run_team(task, router=FreeFirstRouter(), tool_registry=registry)
           except TeamExecutionError as exc:
               print("FAIL: agent team stopped at stage:", exc.stage)
               cause = exc.cause
