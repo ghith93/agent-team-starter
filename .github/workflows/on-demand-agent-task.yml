@@ -42,6 +42,9 @@ jobs:
     env:
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       OPENROUTER_FREE_MODELS: openrouter/free
+      OPENROUTER_PLAN_MODELS: nvidia/nemotron-3-ultra-550b-a55b:free,openrouter/free
+      OPENROUTER_DRAFT_MODELS: cohere/north-mini-code:free,openrouter/free
+      OPENROUTER_REVIEW_MODELS: nvidia/nemotron-3-ultra-550b-a55b:free,openrouter/free
       ENABLE_AGENT_TOOLS: ${{ inputs.enable_tools }}
       AGENT_TEAM_TRUSTED_EGRESS_PROXY: ${{ secrets.AGENT_TEAM_TRUSTED_EGRESS_PROXY }}
       TASK_INPUT: ${{ inputs.task }}
