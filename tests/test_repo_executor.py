@@ -31,6 +31,10 @@ class RepoExecutorTests(unittest.TestCase):
             self.assertIn("sample.py", result.message)
             self.assertIn("Diagnostic:", result.message)
 
+    def test_accepts_hunk_lines_that_look_like_file_headers(self):
+        patch = "--- a/sample.py\n+++ b/sample.py\n@@ -1 +1 @@\n--- old-comment\n+++ new-comment\n"
+        self.assertEqual(_validate_patch(patch), ("sample.py",))
+
     def test_rejects_malformed_pseudo_file_headers(self):
         patch = "--- FILE: sample.py ---\n+++ FILE: sample.py +++\n@@ -1 +1 @@\n-old\n+new\n"
         with self.assertRaisesRegex(PatchRejected, "Malformed old-file header"):
