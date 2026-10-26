@@ -15,6 +15,8 @@ class BenchmarkTests(unittest.TestCase):
     def test_only_explicit_free_model_ids_are_accepted(self):
         self.assertTrue(_model_is_free("openrouter/free"))
         self.assertTrue(_model_is_free("cohere/north-mini-code:free"))
+        self.assertTrue(_model_is_free("poolside/laguna-s-2.1:free"))
+        self.assertTrue(_model_is_free("thinkingmachines/inkling-small:free"))
         self.assertFalse(_model_is_free("openai/gpt-4o"))
         self.assertFalse(_model_is_free("cohere/north-mini-code"))
 
