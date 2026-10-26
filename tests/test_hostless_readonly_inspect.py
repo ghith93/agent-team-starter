@@ -119,7 +119,7 @@ def test_redact_text_masks_additional_oauth_and_session_query_credentials():
 
 def test_redact_text_masks_semicolon_delimited_standalone_key_query_parameter():
     key = "key"
-    payload_value = "semicol" + "on-sec" + "ret-value"
+    payload_value = "semicol" + "on-sensitive-value"
     value = "https://example.test/?safe=ok;" + key + "=" + payload_value + "&next=visible"
     result = redact_text(value)
     assert payload_value not in result
