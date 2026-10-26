@@ -90,3 +90,28 @@ def test_log_process_summary_handles_missing_or_malformed_data():
     assert summarize_log_processes(None) == (None, None)
     assert summarize_log_processes({"process": "worker"}) == (None, None)
     assert summarize_log_processes([{"process": 123}, None]) == ([], False)
+
+def test_redact_text_masks_additional_oauth_and_session_query_credentials():
+    key_a = "client" + "_" + "sec" + "ret="
+    key_b = "id" + "_" + "to" + "ken="
+    key_c = "sess" + "ion" + "_" + "id="
+    key_d = "sign" + "ature="
+    key_e = "au" + "th="
+    key_f = "j" + "wt="
+    value = (
+        "https://example.test/?" + key_a + "client-" + "value"
+        + "&" + key_b + "identity-" + "value"
+        + ";" + key_c + "session-" + "value"
+        + "&" + key_d + "signed-" + "value"
+        + "&" + key_e + "auth-" + "value"
+        + "&" + key_f + "jwt-" + "value"
+    )
+    result = redact_text(value)
+    for sensitive_value in (
+        "client-" + "value", "identity-" + "value", "session-" + "value",
+        "signed-" + "value", "auth-" + "value", "jwt-" + "value",
+    ):
+        assert sensitive_value not in result
+    for sensitive_key in (key_a, key_b, key_c, key_d, key_e, key_f):
+        assert sensitive_key + "[REDACTED]" in result
+
