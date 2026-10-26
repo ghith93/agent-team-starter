@@ -78,7 +78,14 @@ jobs:
                   capture_output=True, text=True, timeout=240, check=False,
               )
           except subprocess.TimeoutExpired:
-              print(json.dumps({"ok": False, "failure": "timeout"}))
+              summary = {
+                  "ok": False, "return_code": None, "stages": [],
+                  "total_duration_ms": None, "final_chars": 0,
+                  "failure_type": "timeout",
+              }
+              print(json.dumps(summary, ensure_ascii=False, indent=2))
+              with open("live-smoke-summary.json", "w", encoding="utf-8") as handle:
+                  json.dump(summary, handle, ensure_ascii=False, indent=2)
               raise SystemExit(1)
 
           try:
@@ -111,6 +118,32 @@ jobs:
           with open("live-smoke-summary.json", "w", encoding="utf-8") as handle:
               json.dump(summary, handle, ensure_ascii=False, indent=2)
           raise SystemExit(0 if summary["ok"] else 1)
+          PY
+
+      - name: Publish result in GitHub Actions summary
+        if: always()
+        shell: bash
+        run: |
+          if [[ ! -f live-smoke-summary.json ]]; then
+            {
+              echo "## Live provider smoke test"
+              echo
+              echo "**Result:** No sanitized summary was produced."
+              echo "Review the failed step status in this run; do not share raw logs or secrets."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          with open("live-smoke-summary.json", encoding="utf-8") as handle:
+              summary = json.load(handle)
+          print("## Live provider smoke test")
+          print()
+          print("**Result:** " + ("PASS" if summary.get("ok") is True else "FAIL"))
+          print()
+          print("\`\`\`json")
+          print(json.dumps(summary, ensure_ascii=False, indent=2))
+          print("\`\`\`")
           PY
 
       - name: Upload sanitized smoke summary
