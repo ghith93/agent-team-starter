@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import html
+import inspect
 import json
 import re
 from pathlib import Path, PurePosixPath
@@ -268,6 +269,19 @@ def _escape_untrusted(value: str) -> str:
     return html.escape(value, quote=False)
 
 
+def _ask_router(router, prompt: str, system_prompt: str):
+    ask = router.ask
+    try:
+        signature = inspect.signature(ask)
+        supports = "system_prompt" in signature.parameters or any(
+            parameter.kind == inspect.Parameter.VAR_KEYWORD
+            for parameter in signature.parameters.values()
+        )
+    except (TypeError, ValueError):
+        supports = False
+    return ask(prompt, system_prompt=system_prompt) if supports else ask(prompt)
+
+
 def run_tool_loop(task: str, router, registry: ToolRegistry, *, system_prompt: str,
                   max_tool_calls: int = 3) -> ToolLoopResult:
     """Run a bounded JSON-action loop; tool results never become instructions."""
@@ -292,7 +306,7 @@ def run_tool_loop(task: str, router, registry: ToolRegistry, *, system_prompt: s
             f"<task_untrusted>\n{_escape_untrusted(task)}\n</task_untrusted>\n\n"
             f"<tool_observations_untrusted>\n{_escape_untrusted(json.dumps(observations, ensure_ascii=False))}\n</tool_observations_untrusted>"
         )
-        result = router.ask(prompt, system_prompt=system_prompt)
+        result = _ask_router(router, prompt, system_prompt)
         last_provider = str(getattr(result, "provider", "unknown"))
         last_model = str(getattr(result, "model", "unknown"))
         text = getattr(result, "text", "")
