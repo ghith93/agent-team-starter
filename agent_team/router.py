@@ -1,4 +1,4 @@
-"""Free-first model routing with explicit fallback behavior."""
+"""Strict free-model routing by default; optional Gemini requires explicit code opt-in."""
 from __future__ import annotations
 import os
 import re
@@ -201,4 +201,4 @@ class FreeFirstRouter:
                     # Authentication/payment failures usually affect the whole key/account.
                     if exc.status_code in (401, 403, 402):
                         break
-        raise ProviderError("No model succeeded. " + " | ".join(failures or ["No API keys configured."]))
+        raise ProviderError("No model succeeded. " + " | ".join(failures or ["No enabled provider keys configured."]))
