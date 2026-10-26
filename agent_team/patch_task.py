@@ -70,13 +70,25 @@ def collect_repository_context(root: str | Path) -> str:
                 text = path.read_text(encoding="utf-8")
             except (UnicodeDecodeError, OSError):
                 continue
-            safe_lines = []
-            for line in text.splitlines():
-                # Support unquoted assignments and quoted JSON/YAML keys, not only Python-style keys.
-                if re.search(r"""(?i)["']?(api[_-]?key|secret|password|token)["']?\s*[:=]\s*["']?\S{12,}""", line):
-                    safe_lines.append("[REDACTED: credential-like line]")
-                else:
-                    safe_lines.append(line)
+            lines = text.splitlines()
+            credential_key = re.compile(r"""(?i)["']?(api[_-]?key|secret|password|token)["']?\s*[:=]""")
+            # If a credential key has no inline scalar (including YAML block scalars),
+            # redact the whole file: its value may follow on subsequent lines.
+            multiline_credential = any(
+                (match := credential_key.search(line)) is not None
+                and line[match.end():].strip() in {"", "|", ">", "|-", ">-", "|+", ">+"}
+                for line in lines
+            )
+            if multiline_credential:
+                safe_lines = ["[REDACTED: credential-like file]"]
+            else:
+                safe_lines = []
+                for line in lines:
+                    # Support unquoted assignments and quoted JSON/YAML keys, not only Python-style keys.
+                    if re.search(r"""(?i)["']?(api[_-]?key|secret|password|token)["']?\s*[:=]\s*["']?\S{12,}""", line):
+                        safe_lines.append("[REDACTED: credential-like line]")
+                    else:
+                        safe_lines.append(line)
             snippet = "\n".join(safe_lines)[:MAX_FILE_CHARS]
             section = f"\n--- FILE: {relative} ---\n{snippet}\n"
             if count >= MAX_CONTEXT_FILES or total + len(section) > MAX_CONTEXT_CHARS:
