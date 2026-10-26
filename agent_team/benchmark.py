@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .patch_task import run_patch_task
-from .router import FreeFirstRouter, ProviderError
+from .router import FreeFirstRouter
 
 ROOT = Path(__file__).resolve().parents[1]
 TASKS_PATH = ROOT / "benchmarks" / "coding_tasks.json"
@@ -139,7 +139,8 @@ def main() -> int:
             "provider_calls": 0,
             "tasks": [{"id": task["id"], "fixture": task["fixture"]} for task in tasks],
             "models": models,
-            "maximum_calls_if_authorized": len(tasks) * len(models),
+            "logical_model_task_pairs_if_authorized": len(tasks) * len(models),
+            "maximum_http_requests_including_one_retry": 2 * len(tasks) * len(models),
             "message": "No provider calls were made. Pass --run and explicitly set AUTHORIZE_BENCHMARK_PROVIDER_CALLS=true to execute.",
         }, indent=2))
         return 0
