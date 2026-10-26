@@ -26,8 +26,8 @@ MAX_PATCH_DIAGNOSTIC_CHARS = 240
 def _safe_patch_diagnostic(value: object) -> str:
     """Keep useful patch-tool diagnostics bounded and redact credential-like values."""
     detail = " ".join(str(value).split())
-    detail = re.sub(r"(?i)bearer\\s+[A-Za-z0-9._~+/-]+=*", "Bearer [REDACTED]", detail)
-    detail = re.sub(r"(?i)(api[_ -]?key|token|authorization)(\\s*[:=]\\s*)[^,; ]+", r"\\1\\2[REDACTED]", detail)
+    detail = re.sub(r"(?i)bearer\s+[A-Za-z0-9._~+/-]+=*", "Bearer [REDACTED]", detail)
+    detail = re.sub(r"(?i)(api[_ -]?key|token|authorization)(\s*[:=]\s*)[^,; ]+", r"\1\2[REDACTED]", detail)
     return detail[:MAX_PATCH_DIAGNOSTIC_CHARS]
 VALIDATION_COMMANDS = {
     "project-tests": ("python", "run_tests.py"),
