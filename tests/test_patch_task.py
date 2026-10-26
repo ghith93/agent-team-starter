@@ -1,8 +1,11 @@
+import json
+import os
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
-from agent_team.patch_task import collect_repository_context, extract_patch
+from agent_team.patch_task import collect_repository_context, extract_patch, main, run_patch_task
 from agent_team.repo_executor import PatchRejected
 
 
@@ -33,6 +36,32 @@ class PatchTaskTests(unittest.TestCase):
             self.assertIn("agent.py", context)
             self.assertNotIn(key_name, context)
             self.assertNotIn("ci.yml", context)
+
+    def test_invalid_validation_is_rejected_before_provider_call(self):
+        class NeverCalledRouter:
+            def ask(self, *args, **kwargs):
+                raise AssertionError("Provider must not be called for invalid validation.")
+        with self.assertRaisesRegex(ValueError, "Unknown validation"):
+            run_patch_task("task", router=NeverCalledRouter(), validations=("shell",))
+
+    def test_test_execution_requires_explicit_authorization_before_provider_call(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            previous = os.getcwd()
+            try:
+                os.chdir(temporary)
+                with patch.dict(os.environ, {
+                    "TASK_INPUT": "safe test task",
+                    "PATCH_VALIDATION_LEVEL": "unittest",
+                    "AUTHORIZE_TEST_EXECUTION": "false",
+                }, clear=False):
+                    with patch("agent_team.patch_task.run_patch_task") as run:
+                        code = main()
+                self.assertEqual(code, 2)
+                run.assert_not_called()
+                result = json.loads((Path(temporary) / "repository-patch-result.json").read_text(encoding="utf-8"))
+                self.assertEqual(result["status"], "test_execution_not_authorized")
+            finally:
+                os.chdir(previous)
 
     def test_context_redacts_credential_like_lines(self):
         with tempfile.TemporaryDirectory() as temporary:
