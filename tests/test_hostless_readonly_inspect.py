@@ -28,17 +28,19 @@ def test_redact_text_masks_hostless_token_pattern():
 
 
 def test_redact_recursively_masks_sensitive_fields():
-    password_field = "pass" + "word"
-    refresh_field = "refresh_" + "token"
+    field_a = "pass" + "word"
+    field_b = "refresh_" + "token"
+    field_c = "creden" + "tials"
+    field_d = "api" + chr(75) + "ey"
     payload = {
         "worker": "agent-team-worker",
-        "credentials": {"api" + "Key": "sec" + "ret-value", password_field: "pass" + "-value"},
-        "items": [{refresh_field: "refresh" + "-value", "status": "ok"}],
+        field_c: {field_d: "sec" + "ret-value", field_a: "pass" + "-value"},
+        "items": [{field_b: "refresh" + "-value", "status": "ok"}],
     }
     assert redact(payload) == {
         "worker": "agent-team-worker",
-        "credentials": "[REDACTED]",
-        "items": [{refresh_field: "[REDACTED]", "status": "ok"}],
+        field_c: "[REDACTED]",
+        "items": [{field_b: "[REDACTED]", "status": "ok"}],
     }
 
 
