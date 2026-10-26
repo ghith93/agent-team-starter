@@ -123,3 +123,8 @@ Planner, Executor, and Reviewer role policies are sent using provider-native sys
 ## Release ZIP hygiene (rc10+)
 
 Run `python evaluations/archive_audit.py PATH_TO_ZIP` to check ZIP paths, duplicate names, symlinks, selected sensitive/runtime files, CRC, entry count, member size, total uncompressed size, and compression ratio. The defaults are 10,000 entries, 100 MiB per member, 500 MiB total uncompressed size, and a 1,000:1 compression ratio. If metadata exceeds a configured limit, CRC testing is skipped to avoid decompressing the archive. These are conservative metadata checks, not a sandbox or full archive-security guarantee.
+
+
+## On-demand execution without a hosting provider
+
+For occasional tasks, use [the GitHub Actions on-demand runner](.github/workflows/on-demand-agent-task.yml) and its [runbook](docs/ON_DEMAND_GITHUB_ACTIONS_RUNBOOK.md). It runs only after manual dispatch, requires an explicit Boolean authorization before any live OpenRouter calls, and stores its result in a one-day artifact. It does not run continuously or preserve the SQLite queue between jobs. Use only non-sensitive task input.
