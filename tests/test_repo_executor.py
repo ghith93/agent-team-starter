@@ -20,10 +20,10 @@ class RepoExecutorTests(unittest.TestCase):
     def test_patch_application_failure_includes_bounded_diagnostic(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            (root / "sample.py").write_text("actual\\n", encoding="utf-8")
+            (root / "sample.py").write_text("actual\n", encoding="utf-8")
             patch = (
-                "--- a/sample.py\\n+++ b/sample.py\\n"
-                "@@ -1 +1 @@\\n-expected\\n+updated\\n"
+                "--- a/sample.py\n+++ b/sample.py\n"
+                "@@ -1 +1 @@\n-expected\n+updated\n"
             )
             result = evaluate_patch(root, patch, validations=("compile",))
             self.assertFalse(result.accepted)
