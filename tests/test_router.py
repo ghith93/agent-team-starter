@@ -149,6 +149,33 @@ class RouterTests(unittest.TestCase):
             router.ask("test")
         self.assertEqual(calls, ["openrouter/free"])
 
+    def test_final_provider_error_preserves_safe_actionable_hint(self):
+        def unavailable(key, model, prompt, *, system_prompt=""):
+            raise ProviderError("provider_unavailable (HTTP 503): model temporarily overloaded", 503)
+        router = FreeFirstRouter(
+            gemini_key="", openrouter_key="test-key", free_models=["sample/model:free"],
+            openrouter_call=unavailable,
+        )
+        with self.assertRaises(ProviderError) as caught:
+            router.ask("test")
+        self.assertIn("provider_unavailable", str(caught.exception))
+        self.assertIn("temporarily overloaded", str(caught.exception))
+
+    def test_final_provider_error_redacts_credentials_from_custom_provider(self):
+        def unsafe_provider(key, model, prompt, *, system_prompt=""):
+            raise ProviderError("invalid token=supersecret123 Bearer abc.def.ghi", 401)
+        router = FreeFirstRouter(
+            gemini_key="", openrouter_key="account-key-123", free_models=["sample/model:free"],
+            openrouter_call=unsafe_provider,
+        )
+        with self.assertRaises(ProviderError) as caught:
+            router.ask("test")
+        message = str(caught.exception)
+        self.assertNotIn("supersecret123", message)
+        self.assertNotIn("abc.def.ghi", message)
+        self.assertNotIn("account-key-123", message)
+        self.assertIn("[REDACTED]", message)
+
     def test_no_keys_fails_closed(self):
         router = FreeFirstRouter(gemini_key="", openrouter_key="", free_models=[])
         with self.assertRaises(ProviderError):
