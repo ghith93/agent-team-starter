@@ -127,7 +127,7 @@ def run_benchmark(models: list[str], validation: str = "unittest") -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run", action="store_true", help="Run provider calls; requires explicit environment authorization.")
-    parser.add_argument("--models", default="cohere/north-mini-code:free,nvidia/nemotron-3-ultra-550b-a55b:free,openrouter/free")
+    parser.add_argument("--models", default="poolside/laguna-s-2.1:free,thinkingmachines/inkling-small:free,nvidia/nemotron-3-ultra-550b-a55b:free")
     parser.add_argument("--validation", choices=("unittest", "compile"), default="unittest")
     parser.add_argument("--output", default="free-model-benchmark-result.json")
     args = parser.parse_args()
