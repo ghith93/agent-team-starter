@@ -15,7 +15,9 @@ class CliTests(unittest.TestCase):
             code = main(["--check-config"])
         self.assertEqual(code, 0)
         result = json.loads(out.getvalue())
-        self.assertEqual(result["configured_providers"], ["Gemini"])
+        self.assertEqual(result["configured_providers"], [])
+        self.assertFalse(result["gemini_enabled"])
+        self.assertTrue(result["gemini_key_present_but_disabled"])
         self.assertFalse(result["live_check_performed"])
         self.assertNotIn("test-key", out.getvalue())
 
