@@ -115,3 +115,12 @@ def test_redact_text_masks_additional_oauth_and_session_query_credentials():
     for sensitive_key in (key_a, key_b, key_c, key_d, key_e, key_f):
         assert sensitive_key + "[REDACTED]" in result
 
+
+
+def test_redact_text_masks_semicolon_delimited_standalone_key_query_parameter():
+    key = "key"
+    secret_value = "semicol" + "on-secret-value"
+    value = "https://example.test/?safe=ok;" + key + "=" + secret_value + "&next=visible"
+    result = redact_text(value)
+    assert secret_value not in result
+    assert ";" + key + "=[REDACTED]&next=visible" in result
