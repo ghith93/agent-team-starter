@@ -12,6 +12,20 @@ on:
         required: true
         default: false
         type: boolean
+      validation_level:
+        description: "Fixed validation command; test modes require a separate authorization"
+        required: true
+        default: compile
+        type: choice
+        options:
+          - compile
+          - project-tests
+          - unittest
+      authorize_test_execution:
+        description: "Explicitly authorize candidate project code to run in a network-disabled Docker sandbox"
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -28,16 +42,25 @@ jobs:
       - name: Explain the authorization gate
         run: echo "No provider call was made. Re-run manually and enable authorize_provider_calls to request a patch."
 
-  propose-and-validate:
-    if: inputs.authorize_provider_calls == true
+  test-execution-authorization-required:
+    if: inputs.authorize_provider_calls == true && inputs.validation_level != 'compile' && inputs.authorize_test_execution != true
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    steps:
+      - name: Explain the separate test authorization
+        run: echo "No provider call was made. Select compile or explicitly authorize sandboxed project-test execution."
+
+  propose-and-validate:
+    if: inputs.authorize_provider_calls == true && (inputs.validation_level == 'compile' || inputs.authorize_test_execution == true)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
     env:
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       OPENROUTER_FREE_MODELS: cohere/north-mini-code:free,openrouter/free
       GEMINI_API_KEY: ""
+      PATCH_VALIDATION_LEVEL: ${{ inputs.validation_level }}
+      AUTHORIZE_TEST_EXECUTION: ${{ inputs.authorize_test_execution }}
       TASK_INPUT: ${{ inputs.task }}
     steps:
       - name: Checkout source
