@@ -47,3 +47,33 @@ Therefore, switching from 3.63.0 to 3.62.0 did not reduce the advisory counts on
 - Artifact ID: `12620000976` (retained by GitHub Actions for 14 days from creation).
 
 This remains a metadata/lockfile audit only; it does not demonstrate that either CLI version or the override is safe at runtime.
+
+
+## Expanded eight-way comparison (2026-10-26)
+
+Successful workflow: https://github.com/ghith93/agent-team-starter/actions/runs/40248469953  
+Artifact ID: `12619536778` (`ruflo-protobufjs-remediation-comparison`).
+
+| Candidate | Critical | High | Moderate | Total |
+|---|---:|---:|---:|---:|
+| CLI 3.63.0 baseline | 1 | 14 | 22 | 37 |
+| CLI 3.63.0 + `protobufjs@7.6.6` | 0 | 12 | 22 | 34 |
+| CLI 3.63.0 + protobufjs override + lockfile-only audit fix | 0 | 12 | 22 | 34 |
+| CLI 3.62.0 | 1 | 14 | 22 | 37 |
+| CLI 3.62.0 + `protobufjs@7.6.6` | 0 | 12 | 22 | 34 |
+| CLI 3.32.29 | 1 | 12 | 23 | 36 |
+| CLI 3.32.29 + `protobufjs@7.6.6` | 0 | 10 | 23 | 33 |
+| CLI 3.63.0 + `protobufjs@7.6.6`, `zod@4.6.6`, `sharp@0.35.5` | 0 | 2 | 26 | 28 |
+
+### Interpretation
+
+- The CLI downgrade to 3.32.29 alone reduces the total by only one finding and leaves one critical finding. With the protobufjs override it reports 33 findings (0 critical, 10 high), but it is still a breaking-version downgrade and not an acceptable production recommendation without compatibility testing.
+- The targeted three-package override produces the lowest observed count: 28 (0 critical, 2 high, 26 moderate). In this report, the two remaining high findings are associated with the OpenTelemetry Jaeger propagator and OpenTelemetry SDK Node dependency tree. Ruflo/agentdb and numerous OpenTelemetry moderate findings remain.
+- These are npm audit advisory counts for a synthetic, lockfile-only dependency graph. Counts are not a direct measure of exploitability, and one package can aggregate multiple advisories. All candidate audit commands exit 1 because vulnerabilities remain.
+- The `sharp@0.35.5` and `zod@4.6.6` overrides are experimental. The lockfile resolves, but no package code was installed or run and no API/ABI compatibility was tested. In particular, forcing transitive versions may violate consumers' declared version expectations.
+
+### Decision after expanded comparison
+
+Keep Ruflo out of the production/runtime dependency set. The targeted override is the best **audit-only candidate for a later isolated compatibility experiment**, not a security approval or a mergeable runtime fix. The next safe step is to map the remaining OpenTelemetry advisories to their dependency constraints and test compatible patched version families in metadata-only experiments. Only after that should a separate disposable sandbox perform minimal smoke/compatibility tests with synthetic data, no secrets, and no repository write credentials.
+
+The Python agent pipeline remains the production baseline. No runtime dependency was changed by this experiment.
