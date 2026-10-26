@@ -130,6 +130,8 @@ class SecurityWorkflowContractTests(unittest.TestCase):
         self.assertNotIn("      pull-requests: write", generation_job)
         self.assertIn("persist-credentials: false", source)
         self.assertIn("Candidate code will not be executed in this job.", source)
+        self.assertIn('if "tests" in parts or "test" in parts or path.name.lower().startswith("test_"):', source)
+        self.assertIn('{"requirements.txt", "pyproject.toml", "setup.py", "setup.cfg", "pipfile", "poetry.lock", "uv.lock", "dockerfile"}', source)
 
     def test_permission_contract_rejects_write_scopes(self):
         fixtures = (
