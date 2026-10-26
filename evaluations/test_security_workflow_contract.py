@@ -175,7 +175,7 @@ class SecurityWorkflowContractTests(unittest.TestCase):
     def test_on_demand_agent_workflow_is_manual_and_live_calls_are_explicitly_gated(self):
         path = WORKFLOWS_DIR / "on-demand-agent-task.yml"
         source = path.read_text(encoding="utf-8")
-        trigger_block = source.split("\\npermissions:", 1)[0]
+        trigger_block = source.split("\npermissions:", 1)[0]
         self.assertIn("workflow_dispatch:", trigger_block)
         self.assertNotRegex(trigger_block, r"(?m)^  (?:push|pull_request|schedule):")
         self.assertIn("authorize_provider_calls:", trigger_block)
