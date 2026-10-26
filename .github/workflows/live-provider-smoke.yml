@@ -141,9 +141,9 @@ jobs:
           print()
           print("**Result:** " + ("PASS" if summary.get("ok") is True else "FAIL"))
           print()
-          print("\`\`\`json")
+          print(chr(96) * 3 + "json")
           print(json.dumps(summary, ensure_ascii=False, indent=2))
-          print("\`\`\`")
+          print(chr(96) * 3)
           PY
 
       - name: Upload sanitized smoke summary
