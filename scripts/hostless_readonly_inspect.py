@@ -10,6 +10,7 @@ import json
 import os
 import re
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.error import HTTPError, URLError
@@ -75,6 +76,67 @@ def get_json(path: str):
     except (URLError, TimeoutError) as exc:
         return {"status": None, "error": f"network error: {type(exc).__name__}"}
 
+def wait_for_target_deployment(worker_path: str):
+    """Wait briefly for the deployment triggered by this commit to finish.
+
+    Hostless auto-deploys on pushes to main, but its build can lag behind the
+    GitHub Actions push event. Polling here prevents the report from mistaking
+    an older active deployment for the newly pushed commit.
+    """
+    target_commit = os.environ.get("GITHUB_SHA", "").strip()
+    if not target_commit:
+        return get_json(worker_path + "/deployments"), {
+            "target_commit": None,
+            "waited_seconds": 0,
+            "target_deployment_found": False,
+            "target_deployment_status": None,
+            "note": "GITHUB_SHA unavailable; skipped deployment wait",
+        }
+
+    started = time.monotonic()
+    deadline = started + 180
+    latest_response = None
+    target_status = None
+    found = False
+    while True:
+        latest_response = get_json(worker_path + "/deployments")
+        data = latest_response.get("data")
+        items = (
+            data.get("items", [])
+            if isinstance(data, dict)
+            else data if isinstance(data, list) else []
+        )
+        match = next(
+            (
+                item for item in items
+                if isinstance(item, dict)
+                and item.get("gitCommitHash") == target_commit
+                and item.get("id")
+            ),
+            None,
+        )
+        if match:
+            found = True
+            target_status = match.get("status")
+            if target_status not in {
+                "BUILD_STARTED", "BUILDING", "DEPLOYING", "DEPLOYMENT_IN_PROGRESS"
+            }:
+                break
+        if time.monotonic() >= deadline:
+            break
+        time.sleep(10)
+
+    return latest_response, {
+        "target_commit": target_commit,
+        "waited_seconds": round(time.monotonic() - started, 1),
+        "target_deployment_found": found,
+        "target_deployment_status": target_status,
+        "note": "wait limit reached" if time.monotonic() >= deadline and target_status in {
+            "BUILD_STARTED", "BUILDING", "DEPLOYING", "DEPLOYMENT_IN_PROGRESS"
+        } or not found else None,
+    }
+
+
 def main() -> int:
     if not TOKEN:
         print("HOSTLESS_TOKEN secret is missing; add it in repository Actions secrets.", file=sys.stderr)
@@ -84,8 +146,8 @@ def main() -> int:
         return 2
 
     worker_path = "/workers/" + quote(WORKER, safe="")
+    deployments_check, deployment_wait = wait_for_target_deployment(worker_path)
     worker_check = get_json(worker_path)
-    deployments_check = get_json(worker_path + "/deployments")
     runtime_logs_check = get_json(worker_path + "/logs")
 
     # Hostless may fail the aggregate worker log endpoint while serving
@@ -132,6 +194,7 @@ def main() -> int:
         "mode": "read-only",
         "note": "Sensitive fields and common token patterns are redacted. Review before sharing logs.",
         "diagnostics": {
+            "deployment_wait": deployment_wait,
             "latest_deployment_id": latest_deployment_id,
             "latest_deployment_status": latest_deployment.get("status") if latest_deployment else None,
             "latest_deployment_commit": latest_commit,
