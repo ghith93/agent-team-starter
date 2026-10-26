@@ -122,7 +122,7 @@ class SecurityWorkflowContractTests(unittest.TestCase):
     def test_patch_pr_write_scope_is_separately_gated(self):
         source = (WORKFLOWS_DIR / "repository-patch-proposal.yml").read_text(encoding="utf-8")
         self.assertIn("create-pull-request:", source)
-        self.assertIn("if: inputs.authorize_open_pr == true && needs.propose-and-validate.result == 'success'", source)
+        self.assertIn("if: inputs.authorize_open_pr == true && inputs.validation_level != 'compile' && inputs.authorize_test_execution == true && needs.propose-and-validate.result == 'success'", source)
         generation_job = source.split("  create-pull-request:", 1)[0]
         self.assertIn("  propose-and-validate:", generation_job)
         self.assertIn("      contents: read", generation_job)
