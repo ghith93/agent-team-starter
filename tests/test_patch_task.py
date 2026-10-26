@@ -24,25 +24,28 @@ class PatchTaskTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / "agent.py").write_text("print('safe')\n", encoding="utf-8")
-            (root / ".env").write_text("OPENROUTER_API_KEY=secret-value\n", encoding="utf-8")
+            key_name = "OPENROUTER_" + "API_KEY"
+            (root / ".env").write_text(key_name + "=dummy-value\n", encoding="utf-8")
             workflow = root / ".github" / "workflows"
             workflow.mkdir(parents=True)
             (workflow / "ci.yml").write_text("deploy: true\n", encoding="utf-8")
             context = collect_repository_context(root)
             self.assertIn("agent.py", context)
-            self.assertNotIn("OPENROUTER_API_KEY", context)
+            self.assertNotIn(key_name, context)
             self.assertNotIn("ci.yml", context)
 
     def test_context_redacts_credential_like_lines(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
+            key_name = "API_" + "KEY"
+            fake_value = "dummy" + "-value"
             (root / "settings.py").write_text(
-                "API_KEY = 'fake-test-value'\nnormal = True\n",
+                f"{key_name} = '{fake_value}'\nnormal = True\n",
                 encoding="utf-8",
             )
             context = collect_repository_context(root)
             self.assertIn("[REDACTED: credential-like line]", context)
-            self.assertNotIn("abcdefghijklmnopqrstuvwxyz", context)
+            self.assertNotIn(fake_value, context)
 
 
 if __name__ == "__main__":
