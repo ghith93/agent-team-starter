@@ -1,0 +1,66 @@
+name: Repository patch proposal (free model)
+
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "A non-sensitive task for the repository agent"
+        required: true
+        type: string
+      authorize_provider_calls:
+        description: "Explicitly authorize an OpenRouter free-model call; quota may be consumed"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: repository-patch-proposal-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  authorization-required:
+    if: inputs.authorize_provider_calls != true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Explain the authorization gate
+        run: echo "No provider call was made. Re-run manually and enable authorize_provider_calls to request a patch."
+
+  propose-and-validate:
+    if: inputs.authorize_provider_calls == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+    env:
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      OPENROUTER_FREE_MODELS: openrouter/free
+      GEMINI_API_KEY: ""
+      TASK_INPUT: ${{ inputs.task }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # pinned checkout action
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # pinned setup-python action
+        with:
+          python-version: "3.11"
+
+      - name: Install project dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Propose a patch and validate it in a disposable copy
+        run: python -m agent_team.patch_task
+
+      - name: Upload patch and validation report
+        if: always() && hashFiles('repository-patch-result.json') != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # pinned upload-artifact action
+        with:
+          name: repository-patch-result
+          path: repository-patch-result.json
+          if-no-files-found: error
+          retention-days: 1
