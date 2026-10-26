@@ -118,8 +118,8 @@ def run_sandboxed_command(
         dockerfile = [
             "FROM python:3.11-slim",
             "ENV PIP_DISABLE_PIP_VERSION_CHECK=1 PIP_NO_CACHE_DIR=1 PYTHONDONTWRITEBYTECODE=1 PYTHONIOENCODING=utf-8",
-            "COPY requirements.txt /tmp/requirements.txt",
-            "RUN python -m pip install --no-cache-dir -r /tmp/requirements.txt",
+            "COPY requirements.txt /opt/agent-test/requirements.txt",
+            "RUN python -m pip install --no-cache-dir -r /opt/agent-test/requirements.txt",
         ]
         if validation_name == "pytest":
             dockerfile.append("RUN python -m pip install --no-cache-dir pytest")
@@ -151,12 +151,12 @@ def run_sandboxed_command(
                 "--pids-limit=128",
                 "--memory=1g",
                 "--cpus=2",
-                "--tmpfs", "/tmp:rw,nosuid,nodev,noexec,size=256m",  # nosec B108: isolated ephemeral container tmpfs, not a host temp directory.
+                "--tmpfs", "/run/agent-tmp:rw,nosuid,nodev,noexec,size=256m",
                 "--mount", mount,
                 "--workdir", "/workspace",
                 "--user", f"{os.getuid()}:{os.getgid()}",
-                "--env", "HOME=/tmp",
-                "--env", "TMPDIR=/tmp",
+                "--env", "HOME=/run/agent-tmp",
+                "--env", "TMPDIR=/run/agent-tmp",
                 "--env", "PYTHONDONTWRITEBYTECODE=1",
                 "--env", "PYTHONIOENCODING=utf-8",
                 image_tag, *command,
