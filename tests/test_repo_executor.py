@@ -42,8 +42,8 @@ class RepoExecutorTests(unittest.TestCase):
     def test_project_tests_are_delegated_to_sandbox_and_never_host_run(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            (root / "README.md").write_text("old\\n", encoding="utf-8")
-            patch = "--- a/README.md\\n+++ b/README.md\\n@@ -1 +1 @@\\n-old\\n+new\\n"
+            (root / "README.md").write_text("old\n", encoding="utf-8")
+            patch = "--- a/README.md\n+++ b/README.md\n@@ -1 +1 @@\n-old\n+new\n"
             with patcher("agent_team.repo_executor.run_sandboxed_command") as sandbox:
                 sandbox.return_value = SandboxResult(False, None, False, "Docker is required; tests not run.")
                 result = evaluate_patch(root, patch, validations=("unittest",))
