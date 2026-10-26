@@ -46,7 +46,7 @@ The task workflow runs four bounded stages: planner, executor, independent revie
 
 ## Validated patch publication as a pull request
 
-The manual patch workflow has a separate `authorize_open_pr` checkbox, disabled by default. A PR is attempted only when the provider call was authorized, patch validation completed successfully, and PR publication was separately authorized. The publication job receives a short-lived workflow token with `contents: write` and `pull-requests: write`; the model-generation and candidate-test job has read-only repository permissions and no persisted checkout credentials.
+The manual patch workflow has a separate `authorize_open_pr` checkbox, disabled by default. A PR is attempted only when the provider call was authorized, the selected sandboxed project-test or unittest validation passed (compile-only is not sufficient), test execution was separately authorized, and PR publication was separately authorized. The publication job receives a short-lived workflow token with `contents: write` and `pull-requests: write`; the model-generation and candidate-test job has read-only repository permissions and no persisted checkout credentials.
 
 The publication job downloads the validation artifact, independently checks its status, validation results, size and changed paths, applies the patch and verifies the resulting file list. It does not execute candidate code in the publication job. The patch is committed to a dedicated branch and opened as a PR; no automatic merge is performed. A PR is a proposal, not an assertion that the change is correct. Review the diff and CI results before merging. Workflow-file changes remain blocked by the patch evaluator.
 
