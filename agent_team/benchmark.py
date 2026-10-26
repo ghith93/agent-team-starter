@@ -14,12 +14,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .patch_task import run_patch_task
-from .router import FreeFirstRouter
+from .router import FreeFirstRouter, ProviderError
 
 ROOT = Path(__file__).resolve().parents[1]
 TASKS_PATH = ROOT / "benchmarks" / "coding_tasks.json"
 ALLOWED_MODELS = {"openrouter/free"}
 MAX_TASKS = 3
+MAX_DIAGNOSTIC_CHARS = 240
 
 
 def _load_tasks() -> list[dict]:
@@ -38,6 +39,14 @@ def _load_tasks() -> list[dict]:
 
 def _model_is_free(model: str) -> bool:
     return model in ALLOWED_MODELS or bool(re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+:free", model))
+
+
+def _safe_diagnostic(value: object) -> str:
+    """Bound diagnostics so reports explain failures without dumping arbitrary output."""
+    text = " ".join(str(value).split())
+    text = re.sub(r"(?i)bearer\s+[A-Za-z0-9._~+/-]+=*", "Bearer [REDACTED]", text)
+    text = re.sub(r"(?i)(api[_ -]?key|token|authorization)(\s*[:=]\s*)[^,; ]+", r"\1\2[REDACTED]", text)
+    return text[:MAX_DIAGNOSTIC_CHARS]
 
 
 def run_benchmark(models: list[str], validation: str = "unittest") -> dict:
@@ -88,7 +97,9 @@ def run_benchmark(models: list[str], validation: str = "unittest") -> dict:
                     "changed_paths": changed,
                     "tests_modified": touched_tests,
                     "patch_bytes": len(result.get("patch", "").encode("utf-8")),
-                    "message": "Benchmark fixtures may be solved by model output; tests are not allowed to be changed.",
+                    "message": _safe_diagnostic(result.get("message") or (
+                        "Benchmark fixtures may be solved by model output; tests are not allowed to be changed."
+                    )),
                     "duration_ms": round((time.monotonic() - started) * 1000, 2),
                 }
             except Exception as exc:
@@ -97,6 +108,10 @@ def run_benchmark(models: list[str], validation: str = "unittest") -> dict:
                     "status": "error", "error_type": type(exc).__name__,
                     "duration_ms": round((time.monotonic() - started) * 1000, 2),
                 }
+                # ProviderError is deliberately sanitized by router.py before it reaches here.
+                # Avoid serializing arbitrary unexpected exception text into CI artifacts.
+                if isinstance(exc, ProviderError):
+                    row["error_message"] = _safe_diagnostic(exc)
             results.append(row)
     summary = {}
     for model in models:
@@ -108,7 +123,7 @@ def run_benchmark(models: list[str], validation: str = "unittest") -> dict:
             "mean_duration_ms": round(sum(row.get("duration_ms", 0) for row in subset) / max(1, len(subset)), 2),
         }
     return {
-        "benchmark_version": 1,
+        "benchmark_version": 2,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "validation": validation,
         "logical_model_task_pairs": len(models) * len(tasks),
