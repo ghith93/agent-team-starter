@@ -2,8 +2,8 @@
 
 Date: 2026-10-26  
 Repository: `ghith93/agent-team-starter`  
-Branch: `research/open-source-adoption-plan`  
-Related pull request: [#75 — research open-source adoption strategy](https://github.com/ghith93/agent-team-starter/pull/75)
+Original working branch: `research/open-source-adoption-plan`  
+Related pull request: [#75 — research open-source adoption strategy](https://github.com/ghith93/agent-team-starter/pull/75) (merged)
 
 ## Verified checks for the research-plan commit
 
@@ -60,10 +60,12 @@ These are existing files discovered in the default-branch tree. They should be r
 5. Prototype one candidate at a time in a disposable branch; use the same fixed offline benchmark and compare against baseline.
 6. Keep external posting, purchases, deployment, provider spend, and write-enabled integrations disabled unless separately authorized.
 
-## Current status
+## Current status (refreshed 2026-10-26)
 
-- Research/adoption plan committed to a dedicated branch.
-- Pull request #75 is open as a draft; it has not been merged into `main`.
-- The associated checks passed.
-- No third-party runtime dependencies were installed and no upstream source code was copied.
-- No always-on deployment or live provider behavior was claimed.
+- The research/adoption plan was merged through PR #75 into `main`; the original plan and review history remain available in the linked PR.
+- PR #75's checks passed for the documentation-only change. This is not a full security certification and does not prove runtime availability.
+- Subsequent security work includes merged PR #79 (broader credential redaction) and PR #80 (semicolon-delimited query-key redaction). PR #80's test, secret-scanning, static-analysis, dependency-audit, YAML, isolated-audit, and promotion-readiness checks all passed before merge.
+- The Hostless aggregate runtime logs endpoint has been observed returning HTTP 500 while deployment-scoped logs remained available as a fallback; see [issue #73](https://github.com/ghith93/agent-team-starter/issues/73). This remains an open provider/runtime issue, not a resolved repository-code defect.
+- Main-branch ruleset review, verified repository security settings, monitoring/alerting, and independent backup/restore proof remain open work tracked in [#38](https://github.com/ghith93/agent-team-starter/issues/38), [#17](https://github.com/ghith93/agent-team-starter/issues/17), [#19](https://github.com/ghith93/agent-team-starter/issues/19), and [#18](https://github.com/ghith93/agent-team-starter/issues/18).
+- No third-party runtime dependencies were installed and no upstream source code was copied as part of the adoption research.
+- A successful deployment record does not by itself establish continuous 24/7 availability; live monitoring and a proven restore process are still required.
