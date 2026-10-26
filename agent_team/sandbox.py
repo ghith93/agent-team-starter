@@ -12,7 +12,7 @@ import os
 from pathlib import Path
 import re
 import shutil
-import subprocess
+import subprocess  # nosec B404: only fixed Docker CLI commands run with shell=False.
 import tempfile
 import uuid
 
