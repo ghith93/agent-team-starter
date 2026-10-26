@@ -269,17 +269,22 @@ def _escape_untrusted(value: str) -> str:
     return html.escape(value, quote=False)
 
 
-def _ask_router(router, prompt: str, system_prompt: str):
+def _ask_router(router, prompt: str, system_prompt: str, stage: str = "draft"):
     ask = router.ask
     try:
         signature = inspect.signature(ask)
-        supports = "system_prompt" in signature.parameters or any(
+        accepts_kwargs = any(
             parameter.kind == inspect.Parameter.VAR_KEYWORD
             for parameter in signature.parameters.values()
         )
+        kwargs = {}
+        if "system_prompt" in signature.parameters or accepts_kwargs:
+            kwargs["system_prompt"] = system_prompt
+        if "stage" in signature.parameters or accepts_kwargs:
+            kwargs["stage"] = stage
     except (TypeError, ValueError):
-        supports = False
-    return ask(prompt, system_prompt=system_prompt) if supports else ask(prompt)
+        kwargs = {}
+    return ask(prompt, **kwargs)
 
 
 def run_tool_loop(task: str, router, registry: ToolRegistry, *, system_prompt: str,
@@ -306,7 +311,7 @@ def run_tool_loop(task: str, router, registry: ToolRegistry, *, system_prompt: s
             f"<task_untrusted>\n{_escape_untrusted(task)}\n</task_untrusted>\n\n"
             f"<tool_observations_untrusted>\n{_escape_untrusted(json.dumps(observations, ensure_ascii=False))}\n</tool_observations_untrusted>"
         )
-        result = _ask_router(router, prompt, system_prompt)
+        result = _ask_router(router, prompt, system_prompt, stage="draft")
         last_provider = str(getattr(result, "provider", "unknown"))
         last_model = str(getattr(result, "model", "unknown"))
         text = getattr(result, "text", "")
