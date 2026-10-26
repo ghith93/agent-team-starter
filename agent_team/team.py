@@ -62,20 +62,23 @@ def _result_dict(result: ModelResult) -> dict:
     return {"provider": result.provider, "model": result.model, "text": result.text}
 
 
-def _ask_stage(router, prompt: str, system_prompt: str):
-    """Use separated system instructions when supported; preserve legacy test adapters."""
+def _ask_stage(router, prompt: str, system_prompt: str, stage: str):
+    """Pass supported role metadata while preserving legacy router adapters."""
     ask = router.ask
     try:
         signature = inspect.signature(ask)
-        supports = "system_prompt" in signature.parameters or any(
+        accepts_kwargs = any(
             parameter.kind == inspect.Parameter.VAR_KEYWORD
             for parameter in signature.parameters.values()
         )
+        kwargs = {}
+        if "system_prompt" in signature.parameters or accepts_kwargs:
+            kwargs["system_prompt"] = system_prompt
+        if "stage" in signature.parameters or accepts_kwargs:
+            kwargs["stage"] = stage
     except (TypeError, ValueError):
-        supports = False
-    if supports:
-        return ask(prompt, system_prompt=system_prompt)
-    return ask(prompt)
+        kwargs = {}
+    return ask(prompt, **kwargs)
 
 
 def _write_events(path: str | Path | None, events: list[dict]) -> None:
@@ -183,7 +186,7 @@ def run_team(task: str, router: FreeFirstRouter | None = None,
                     provider=tool_result.provider, model=tool_result.model, text=tool_result.text,
                 )
             else:
-                result = _ask_stage(router, prompt, system_prompts[stage])
+                result = _ask_stage(router, prompt, system_prompts[stage], stage)
             if not isinstance(getattr(result, "text", None), str) or not result.text.strip():
                 raise ValueError(f"{stage} returned empty text.")
             if len(result.text) > MAX_STAGE_OUTPUT_CHARS:

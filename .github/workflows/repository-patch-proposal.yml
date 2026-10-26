@@ -36,7 +36,7 @@ jobs:
       contents: read
     env:
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-      OPENROUTER_FREE_MODELS: openrouter/free
+      OPENROUTER_FREE_MODELS: cohere/north-mini-code:free,openrouter/free
       GEMINI_API_KEY: ""
       TASK_INPUT: ${{ inputs.task }}
     steps:

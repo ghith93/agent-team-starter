@@ -127,6 +127,7 @@ class FreeFirstRouter:
         gemini_call: Callable = gemini_chat,
         openrouter_call: Callable = openrouter_chat,
         enable_gemini: bool = False,
+        stage_models: Optional[dict[str, list[str]]] = None,
     ):
         # Gemini may be billable and is therefore disabled unless the caller explicitly opts in.
         self.enable_gemini = enable_gemini is True
@@ -140,6 +141,23 @@ class FreeFirstRouter:
         self.free_models = free_models if free_models is not None else [x.strip() for x in raw.split(",") if x.strip()]
         if any(not model or (model != "openrouter/free" and not model.endswith(":free")) for model in self.free_models):
             raise ValueError("OpenRouter models must be 'openrouter/free' or end with ':free'.")
+        valid_stages = ("plan", "draft", "review", "revise")
+        supplied = stage_models or {}
+        if set(supplied) - set(valid_stages):
+            raise ValueError("Stage model configuration contains an unknown agent stage.")
+        self.stage_models = {}
+        for stage in valid_stages:
+            if stage in supplied:
+                models = supplied[stage]
+            else:
+                stage_raw = os.getenv(f"OPENROUTER_{stage.upper()}_MODELS", "").strip()
+                models = [item.strip() for item in stage_raw.split(",") if item.strip()] if stage_raw else self.free_models
+            if not isinstance(models, list) or any(
+                not isinstance(model, str) or not model or
+                (model != "openrouter/free" and not model.endswith(":free")
+            ) for model in models):
+                raise ValueError("Stage model IDs must be 'openrouter/free' or end with ':free'.")
+            self.stage_models[stage] = list(models)
         self.gemini_call = gemini_call
         self.openrouter_call = openrouter_call
 
@@ -181,7 +199,7 @@ class FreeFirstRouter:
                     continue
                 raise
 
-    def ask(self, prompt: str, *, system_prompt: str = "") -> ModelResult:
+    def ask(self, prompt: str, *, system_prompt: str = "", stage: Optional[str] = None) -> ModelResult:
         if not isinstance(prompt, str) or not prompt.strip():
             raise ValueError("Prompt must be a non-empty string.")
         failures = []
@@ -192,7 +210,7 @@ class FreeFirstRouter:
             except ProviderError as exc:
                 failures.append(f"Gemini: {classify_http_error(exc.status_code) if exc.status_code else type(exc).__name__}" )
         if self.openrouter_key:
-            for model in self.free_models:
+            for model in self.stage_models.get(stage, self.free_models):
                 try:
                     return ModelResult("OpenRouter", model,
                                        self._call_provider_with_retry(self.openrouter_call, (self.openrouter_key, model, prompt), system_prompt))

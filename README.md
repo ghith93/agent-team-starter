@@ -13,7 +13,7 @@ A small, free-first Python agent workflow: **Planner → Executor → Reviewer �
 - Adds a per-run UUID and total elapsed time; stage trace still records status, latency, provider/model, and output size.
 - Adds CLI `--check-config` that reports provider names only and makes no network request; supports UTF-8 task files and opt-in metadata-only telemetry.
 - Sanitizes provider error hints and prevents full provider error messages from being repeated in fallback summaries.
-- Keeps OpenRouter routing restricted to free model IDs and disables Gemini routing by default; the CLI will not use a configured Gemini key unless the Python caller explicitly opts in. Provider availability and free-model quotas can change.
+- Keeps OpenRouter routing restricted to free model IDs and disables Gemini routing by default; only an explicit Python constructor opt-in can enable Gemini. Provider availability and free-model quotas can change.
 - Corrects Colab instructions to match v0.7 folder and archive names.
 - Retains offline reference evaluator and release gate.
 
@@ -31,6 +31,8 @@ Use environment variables or Colab Secrets. Never hard-code real credentials.
 ```bash
 export OPENROUTER_API_KEY="..."
 # Optional: OPENROUTER_FREE_MODELS=openrouter/free,provider/model:free
+# Optional role-specific free pools: OPENROUTER_PLAN_MODELS=..., OPENROUTER_DRAFT_MODELS=...
+# See docs/FREE_MODEL_ROUTING.md for the current free-only workflow defaults
 ```
 
 ## Run
