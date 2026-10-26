@@ -151,7 +151,12 @@ jobs:
           Path("proposed.patch").write_text(patch, encoding="utf-8")
           subprocess.run(["git", "apply", "--check", "proposed.patch"], check=True, timeout=30)
           subprocess.run(["git", "apply", "proposed.patch"], check=True, timeout=30)
-          changed = subprocess.run(["git", "diff", "--name-only"], check=True, capture_output=True, text=True, timeout=30).stdout.splitlines()
+          Path("proposed.patch").unlink()
+          import shutil
+          shutil.rmtree("patch-artifact")
+          tracked = subprocess.run(["git", "diff", "--name-only"], check=True, capture_output=True, text=True, timeout=30).stdout.splitlines()
+          untracked = subprocess.run(["git", "ls-files", "--others", "--exclude-standard"], check=True, capture_output=True, text=True, timeout=30).stdout.splitlines()
+          changed = sorted(set(tracked) | set(untracked))
           if set(changed) != normalized:
               raise SystemExit("Refusing PR: applied paths do not match the validated report.")
           subprocess.run(["git", "diff", "--check"], check=True, timeout=30)
@@ -162,6 +167,7 @@ jobs:
 
       - name: Commit validated patch
         run: |
+          rm -rf patch-artifact proposed.patch
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "agent-patch-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
