@@ -8,7 +8,7 @@ from __future__ import annotations
 import os
 import re
 import shutil
-import subprocess
+import subprocess  # nosec B404: subprocess is used only with fixed argument lists and shell=False.
 import tempfile
 from dataclasses import asdict, dataclass
 from pathlib import Path, PurePosixPath
@@ -116,7 +116,7 @@ def _ignore_copy(_directory: str, names: list[str]) -> set[str]:
 
 def _run_validation(candidate: Path, name: str, timeout_seconds: int) -> ValidationResult:
     try:
-        completed = subprocess.run(
+        completed = subprocess.run(  # nosec B603: fixed command allowlist; shell=False and environment is restricted.
             VALIDATION_COMMANDS[name],
             cwd=candidate,
             stdin=subprocess.DEVNULL,
@@ -134,7 +134,7 @@ def _run_validation(candidate: Path, name: str, timeout_seconds: int) -> Validat
                 "PYTHONDONTWRITEBYTECODE": "1",
                 "PYTHONIOENCODING": "utf-8",
             },
-        )  # nosec B603: command is selected from VALIDATION_COMMANDS; shell is disabled.
+        )
         return ValidationResult(name, completed.returncode == 0, completed.returncode,
                                 False, completed.stdout[-12000:])
     except subprocess.TimeoutExpired as exc:
@@ -193,16 +193,16 @@ def evaluate_patch(
         shutil.copytree(root, candidate, ignore=_ignore_copy, symlinks=False)
         patch_file = temp_root / "candidate.patch"
         patch_file.write_text(patch, encoding="utf-8")
-        check = subprocess.run(
+        check = subprocess.run(  # nosec B603: fixed git command; shell=False.
             ("git", "apply", "--check", "--whitespace=error", str(patch_file)),
             cwd=candidate, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT, text=True, errors="replace", timeout=30,
             check=False, shell=False,
-        )  # nosec B603: fixed git executable and arguments; shell is disabled.
+        )
         if check.returncode:
             return PatchEvaluation(False, False, changed_paths, (),
                                    "Patch did not apply cleanly; validation was not run.")
-        applied = subprocess.run(
+        applied = subprocess.run(  # nosec B603: fixed git command; shell=False.
             ("git", "apply", "--whitespace=error", str(patch_file)),
             cwd=candidate, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT, text=True, errors="replace", timeout=30,
