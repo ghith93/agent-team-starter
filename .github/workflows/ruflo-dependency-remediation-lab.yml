@@ -1,0 +1,95 @@
+name: Ruflo protobufjs remediation lab
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/ruflo-dependency-remediation-lab.yml"
+  workflow_dispatch:
+    inputs:
+      cli_version:
+        description: "Exact @claude-flow/cli version to audit"
+        required: true
+        default: "3.63.0"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ruflo-remediation-lab-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compare-lockfiles:
+    name: Compare dependency audit candidates without running package code
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+
+      - name: Resolve CLI version
+        id: version
+        env:
+          INPUT_VERSION: ${{ inputs.cli_version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${INPUT_VERSION:-3.63.0}"
+          if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Refusing non-exact version: ${VERSION}" >&2
+            exit 1
+          fi
+          echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
+          mkdir -p remediation-output
+
+      - name: Resolve and audit baseline plus patched-version override candidate
+        env:
+          CLI_VERSION: ${{ steps.version.outputs.value }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for variant in baseline override-protobufjs-7.5.5; do
+            DIR="$GITHUB_WORKSPACE/remediation-output/$variant"
+            mkdir -p "$DIR"
+            cd "$DIR"
+            printf '{"name":"ruflo-remediation-lab","private":true,"version":"1.0.0","dependencies":{"@claude-flow/cli":"%s"}}\n' "$CLI_VERSION" > package.json
+            if [[ "$variant" == "override-protobufjs-7.5.5" ]]; then
+              npm pkg set 'overrides.protobufjs=7.5.5'
+            fi
+            npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+            set +e
+            npm audit --json > npm-audit.json
+            AUDIT_EXIT=$?
+            set -e
+            printf '%s\n' "$AUDIT_EXIT" > npm-audit-exit-code.txt
+            node <<'NODE'
+          const fs = require('fs');
+          const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+          const audit = JSON.parse(fs.readFileSync('npm-audit.json', 'utf8'));
+          const protobuf = Object.entries(lock.packages || {})
+            .filter(([path, p]) => path.endsWith('node_modules/protobufjs') || path === 'node_modules/protobufjs')
+            .map(([path, p]) => ({path, version:p.version, optional:!!p.optional}));
+          const summary = {
+            lockfileVersion: lock.lockfileVersion,
+            protobufjsInstances: protobuf,
+            vulnerabilities: audit.metadata?.vulnerabilities || null,
+            vulnerabilityAdvisoryCount: Object.keys(audit.vulnerabilities || {}).length,
+            note: 'Lockfile-only resolution and npm audit; no package code installed or executed. Override candidate is not runtime compatibility approval.'
+          };
+          fs.writeFileSync('summary.json', JSON.stringify(summary, null, 2) + '\n');
+          console.log(JSON.stringify(summary, null, 2));
+          NODE
+          done
+
+      - name: Upload comparison evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ruflo-protobufjs-remediation-comparison
+          path: remediation-output/
+          if-no-files-found: error
+          retention-days: 14
