@@ -111,7 +111,7 @@ The two zero-finding candidates use these lockfile-only overrides: `protobufjs@7
 
 ### Final audit disposition
 
-**Metadata-only dependency audit: complete for the 12 tested candidates. Ruflo production approval: not granted.** The best observed audit result is zero reported advisories in the synthetic lockfile graph with the aligned core/resources 2.8.0 or 2.9.0 override. Before any runtime adoption, create a disposable, unprivileged compatibility test with synthetic inputs, no secrets, no repository write credentials, and explicit API/behavior tests; independently review the remaining moderate advisory surface in the Ruflo dependency tree and rerun the audit immediately before any promotion.
+**Metadata-only dependency audit: complete for the 12 candidates originally tested; Ruflo production approval: not granted.** The original zero-advisory counts from global OpenTelemetry core/resources overrides are invalid as remediation recommendations because they violate declared dependency ranges. See the compatibility audit correction below. The best plausible audit-only candidate retains six moderate findings and has not passed runtime compatibility tests. Before any runtime adoption, create a disposable, unprivileged compatibility test with synthetic inputs, no secrets, no repository write credentials, and explicit API/behavior tests; independently review the remaining advisory surface and rerun the audit immediately before any promotion.
 
 
 ## Compatibility audit correction — global OpenTelemetry overrides are negative controls
