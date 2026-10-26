@@ -172,6 +172,18 @@ class SecurityWorkflowContractTests(unittest.TestCase):
             "path filters can leave required checks pending on docs-only pull requests",
         )
 
+    def test_on_demand_agent_workflow_is_manual_and_live_calls_are_explicitly_gated(self):
+        path = WORKFLOWS_DIR / "on-demand-agent-task.yml"
+        source = path.read_text(encoding="utf-8")
+        trigger_block = source.split("\\npermissions:", 1)[0]
+        self.assertIn("workflow_dispatch:", trigger_block)
+        self.assertNotRegex(trigger_block, r"(?m)^  (?:push|pull_request|schedule):")
+        self.assertIn("authorize_provider_calls:", trigger_block)
+        self.assertIn("default: false", trigger_block)
+        self.assertIn("if: inputs.authorize_provider_calls == true", source)
+        self.assertIn("retention-days: 1", source)
+        self.assertIn("OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}", source)
+
 
 if __name__ == "__main__":
     unittest.main()
