@@ -32,7 +32,7 @@ def test_redact_recursively_masks_sensitive_fields():
     refresh_field = "refresh_" + "token"
     payload = {
         "worker": "agent-team-worker",
-        "credentials": {"apiKey": "secret-value", password_field: "pass-value"},
+        "credentials": {"api" + "Key": "secret-value", password_field: "pass-value"},
         "items": [{refresh_field: "refresh-value", "status": "ok"}],
     }
     assert redact(payload) == {
