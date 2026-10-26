@@ -90,6 +90,7 @@ Artifact ID: `12619967852` (`ruflo-protobufjs-remediation-comparison`).
 | CLI 3.62.0 baseline | 1 | 14 | 22 | 37 |
 | CLI 3.32.29 baseline | 1 | 12 | 23 | 36 |
 | CLI 3.63.0 + protobufjs 7.6.6 | 0 | 12 | 22 | 34 |
+| CLI 3.63.0 + protobufjs 7.6.6 + lockfile-only audit fix | 0 | 12 | 22 | 34 |
 | CLI 3.62.0 + protobufjs 7.6.6 | 0 | 12 | 22 | 34 |
 | CLI 3.32.29 + protobufjs 7.6.6 | 0 | 10 | 23 | 33 |
 | protobufjs + zod + sharp overrides | 0 | 2 | 26 | 28 |
