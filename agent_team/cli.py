@@ -78,6 +78,7 @@ def main(argv=None):
             "gemini_key_present_but_disabled": bool(router.gemini_key) and not router.enable_gemini,
             "gemini_model_configured": bool(router.gemini_model),
             "openrouter_free_models": router.free_models,
+            "openrouter_stage_models": router.stage_models,
             "live_check_performed": False,
             "note": "Configuration presence only; no network request or billing check was performed."
         }, ensure_ascii=False, indent=2))
