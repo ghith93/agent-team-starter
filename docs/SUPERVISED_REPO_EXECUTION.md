@@ -35,3 +35,8 @@ The \`.github/workflows/repository-patch-proposal.yml\` workflow can be dispatch
 The workflow sends a bounded selection of repository text to the model, excluding \`.github/**\`, common secret/configuration paths, binary files, and credential-like lines. It asks for a unified diff, rejects unsafe patch paths, and runs compile-only validation in a disposable copy. It produces a one-day artifact containing the proposed patch and validation result.
 
 This is a proposal-and-compile-check workflow, not a merge bot. It does not change the checkout, commit, push, create a PR, or run project tests. Review the patch manually before applying it. Do not submit secrets or confidential task data. Repository text sent to the model is disclosed to the configured provider.
+
+
+## Agent-team review loop
+
+The task workflow runs four bounded stages: planner, executor, independent reviewer, and final reviser. The reviser receives the original task, plan, draft, and review findings and produces the final answer rather than returning the unreviewed draft. This improves feedback integration but adds one provider request per task and remains model-based; it is not a substitute for project tests, source verification, or human review. All provider calls remain behind the existing explicit workflow authorization and free-model-only configuration.
