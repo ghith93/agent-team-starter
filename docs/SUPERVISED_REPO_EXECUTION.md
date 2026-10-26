@@ -26,3 +26,12 @@ print(result.to_dict())
 \`\`\`
 
 A passing result means only that selected commands passed in the temporary copy. It is not proof of correctness or security and does not apply, commit, push, or merge the patch. Human review is required before promoting changes.
+
+
+## Manual free-model proposal workflow
+
+The \`.github/workflows/repository-patch-proposal.yml\` workflow can be dispatched manually from GitHub Actions. It requires \`authorize_provider_calls=true\`; leaving the input false makes no provider call. When authorized, it explicitly disables Gemini and permits only the OpenRouter \`openrouter/free\` alias. A provider quota may still be consumed.
+
+The workflow sends a bounded selection of repository text to the model, excluding \`.github/**\`, common secret/configuration paths, binary files, and credential-like lines. It asks for a unified diff, rejects unsafe patch paths, and runs compile-only validation in a disposable copy. It produces a one-day artifact containing the proposed patch and validation result.
+
+This is a proposal-and-compile-check workflow, not a merge bot. It does not change the checkout, commit, push, create a PR, or run project tests. Review the patch manually before applying it. Do not submit secrets or confidential task data. Repository text sent to the model is disclosed to the configured provider.
