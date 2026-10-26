@@ -1,3 +1,6 @@
+from pathlib import Path
+import re
+
 from scripts.hostless_readonly_inspect import (
     MAX_LOG_CHARS,
     redact_text,
@@ -124,3 +127,20 @@ def test_redact_text_masks_semicolon_delimited_standalone_key_query_parameter():
     result = redact_text(value)
     assert payload_value not in result
     assert ";" + key + "=[REDACTED]&next=visible" in result
+
+
+
+def test_hostless_credential_workflow_is_manual_only():
+    workflow_path = (
+        Path(__file__).resolve().parents[1]
+        / ".github"
+        / "workflows"
+        / "hostless-readonly-inspection.yml"
+    )
+    workflow = workflow_path.read_text(encoding="utf-8")
+    trigger_match = re.search(r"(?ms)^on:\n(.*?)(?=^\S|\Z)", workflow)
+    assert trigger_match is not None
+    triggers = trigger_match.group(1)
+    assert re.search(r"(?m)^  workflow_dispatch:", triggers)
+    assert not re.search(r"(?m)^  push:", triggers)
+    assert "HOSTLESS_TOKEN: ${{ secrets.HOSTLESS_TOKEN }}" in workflow
