@@ -47,3 +47,14 @@ def test_redact_text_caps_long_diagnostics():
     assert result.startswith("x" * MAX_LOG_CHARS)
     assert result.endswith("\n[TRUNCATED]")
     assert len(result) == MAX_LOG_CHARS + len("\n[TRUNCATED]")
+
+
+def test_redact_text_masks_access_refresh_and_hyphenated_api_query_tokens():
+    value = "https://example.test/?access_token=access-secret&refresh_token=refresh-secret&api-key=api-secret"
+    result = redact_text(value)
+    assert "access-secret" not in result
+    assert "refresh-secret" not in result
+    assert "api-secret" not in result
+    assert "access_token=[REDACTED]" in result
+    assert "refresh_token=[REDACTED]" in result
+    assert "api-key=[REDACTED]" in result
