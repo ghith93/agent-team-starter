@@ -87,26 +87,36 @@ def collect_repository_context(root: str | Path) -> str:
 
 
 def extract_patch(text: str) -> str:
-    """Extract one unified diff from plain output or a single fenced block."""
+    """Extract a unified diff from plain output or any matching fenced code block."""
     if not isinstance(text, str) or not text.strip():
         raise PatchRejected("The model returned an empty patch.")
-    fence = chr(96) * 3
-    fenced = re.search(re.escape(fence) + r"(?:diff|patch)?\s*\n(.*?)" + re.escape(fence), text, flags=re.DOTALL | re.IGNORECASE)
-    candidate = fenced.group(1).strip() if fenced else text.strip()
-    if candidate.startswith("diff --git ") or candidate.startswith("--- "):
-        return candidate + "\n"
-    if not fenced:
-        lines = candidate.splitlines()
-        start = next((
-            index for index, line in enumerate(lines)
-            if line.startswith("diff --git a/") or line.startswith("--- a/") or line.startswith("--- /dev/null")
-        ), None)
-        if start is not None:
-            candidate = "\n".join(lines[start:]).strip()
-            if candidate.startswith("diff --git ") or candidate.startswith("--- "):
-                return candidate + "\n"
-    raise PatchRejected("The model did not return a unified diff. No files were changed.")
 
+    def is_diff(candidate: str) -> bool:
+        return candidate.startswith(("diff --git a/", "--- a/", "--- /dev/null"))
+
+    fence = chr(96) * 3
+    # Consider every fenced block; models sometimes put examples or explanations first.
+    for match in re.finditer(re.escape(fence) + r"([^\n]*)\n(.*?)" + re.escape(fence), text, flags=re.DOTALL):
+        candidate = match.group(2).strip()
+        if is_diff(candidate):
+            return candidate + "\n"
+
+    candidate = text.strip()
+    if is_diff(candidate):
+        return candidate + "\n"
+
+    # Accept a plain-text preamble, but start only at a standard diff header.
+    lines = candidate.splitlines()
+    start = next((
+        index for index, line in enumerate(lines)
+        if line.startswith("diff --git a/") or line.startswith("--- a/") or line.startswith("--- /dev/null")
+    ), None)
+    if start is not None:
+        candidate = "\n".join(lines[start:]).strip()
+        if is_diff(candidate):
+            candidate = re.sub(r"\n" + re.escape(fence) + r"\s*$", "", candidate).strip()
+            return candidate + "\n"
+    raise PatchRejected("The model did not return a unified diff. No files were changed.")
 
 def run_patch_task(task: str, *, router=None, workspace: str | Path = ".", validations: tuple[str, ...] = ("compile",)) -> dict:
     if not isinstance(task, str) or not task.strip():
