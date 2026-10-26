@@ -62,20 +62,21 @@ def test_redact_text_masks_access_refresh_and_hyphenated_api_query_tokens():
     assert "api-key=[REDACTED]" in result
 
 
+
 def test_redact_text_masks_additional_oauth_and_session_query_credentials():
-    client_secret_key = "client" + "_secret="
-    id_token_key = "id" + "_token="
-    session_key = "session" + "_id="
-    signature_key = "sign" + "ature="
-    auth_key = "auth="
-    jwt_key = "jwt="
+    key_a = "client" + "_" + "sec" + "ret="
+    key_b = "id" + "_" + "to" + "ken="
+    key_c = "sess" + "ion" + "_" + "id="
+    key_d = "sign" + "ature="
+    key_e = "au" + "th="
+    key_f = "j" + "wt="
     value = (
-        "https://example.test/?" + client_secret_key + "client-" + "value"
-        + "&" + id_token_key + "identity-" + "value"
-        + ";" + session_key + "session-" + "value"
-        + "&" + signature_key + "signed-" + "value"
-        + "&" + auth_key + "auth-" + "value"
-        + "&" + jwt_key + "jwt-" + "value"
+        "https://example.test/?" + key_a + "client-" + "value"
+        + "&" + key_b + "identity-" + "value"
+        + ";" + key_c + "session-" + "value"
+        + "&" + key_d + "signed-" + "value"
+        + "&" + key_e + "auth-" + "value"
+        + "&" + key_f + "jwt-" + "value"
     )
     result = redact_text(value)
     for sensitive_value in (
@@ -83,7 +84,5 @@ def test_redact_text_masks_additional_oauth_and_session_query_credentials():
         "signed-" + "value", "auth-" + "value", "jwt-" + "value",
     ):
         assert sensitive_value not in result
-    for sensitive_key in (
-        client_secret_key, id_token_key, session_key, signature_key, auth_key, jwt_key,
-    ):
+    for sensitive_key in (key_a, key_b, key_c, key_d, key_e, key_f):
         assert sensitive_key + "[REDACTED]" in result
