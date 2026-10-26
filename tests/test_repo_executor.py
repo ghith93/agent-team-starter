@@ -3,11 +3,34 @@ import unittest
 from unittest.mock import patch as patcher
 from pathlib import Path
 
-from agent_team.repo_executor import PatchRejected, _validate_patch, evaluate_patch
+from agent_team.repo_executor import PatchRejected, _safe_patch_diagnostic, _validate_patch, evaluate_patch
 from agent_team.sandbox import SandboxResult
 
 
 class RepoExecutorTests(unittest.TestCase):
+    def test_patch_diagnostic_is_bounded_and_redacts_credentials(self):
+        diagnostic = _safe_patch_diagnostic(
+            "error: sample.py failed Bearer abcdef123456 token=supersecret " + ("x" * 400)
+        )
+        self.assertIn("sample.py", diagnostic)
+        self.assertNotIn("abcdef123456", diagnostic)
+        self.assertNotIn("supersecret", diagnostic)
+        self.assertLessEqual(len(diagnostic), 240)
+
+    def test_patch_application_failure_includes_bounded_diagnostic(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "sample.py").write_text("actual\\n", encoding="utf-8")
+            patch = (
+                "--- a/sample.py\\n+++ b/sample.py\\n"
+                "@@ -1 +1 @@\\n-expected\\n+updated\\n"
+            )
+            result = evaluate_patch(root, patch, validations=("compile",))
+            self.assertFalse(result.accepted)
+            self.assertEqual(result.validations, ())
+            self.assertIn("sample.py", result.message)
+            self.assertIn("Diagnostic:", result.message)
+
     def test_rejects_parent_traversal(self):
         patch = "--- a/../outside.py\n+++ b/../outside.py\n@@ -1 +1 @@\n-a\n+b\n"
         with self.assertRaises(PatchRejected):
