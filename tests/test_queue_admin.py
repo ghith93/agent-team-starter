@@ -139,5 +139,20 @@ class QueueAdminTests(unittest.TestCase):
         self.assertEqual(result["jobs_by_status"]["queued"], 0)
 
 
+    def test_restore_test_does_not_skip_when_live_database_is_missing(self):
+        script = (
+            Path(__file__).resolve().parents[1]
+            / "deploy"
+            / "systemd"
+            / "test-queue-restore.sh"
+        ).read_text(encoding="utf-8")
+        self.assertNotIn(
+            "Restore test skipped: queue database has not been created yet.",
+            script,
+        )
+        self.assertIn('find "$BACKUP_DIR"', script)
+        self.assertIn('queue_admin restore --backup "$backup_path"', script)
+
+
 if __name__ == "__main__":
     unittest.main()
