@@ -120,6 +120,8 @@ def run_patch_task(task: str, *, router=None, workspace: str | Path = ".", valid
     result = router.ask(
         "Propose a minimal, task-focused patch to this repository.\n"
         "Return only one unified git diff. Do not return shell commands, prose, or markdown fences.\n"
+        "Use headers in the form --- a/path.py and +++ b/path.py, followed by standard @@ hunk headers.\n"
+        "Never use labels such as FILE: instead of a path header.\n"
         "Do not edit workflow files, credentials, secrets, deployment settings, or unrelated files.\n"
         "If the task cannot be implemented from this context, return no diff and explain that in plain text.\n\n"
         f"<task_untrusted>\n{safe_task}\n</task_untrusted>\n\n"
