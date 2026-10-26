@@ -27,27 +27,28 @@ class TextExtractor(HTMLParser):
         self.parts = []
         self.title_parts = []
         self.in_title = False
-        self.skip_tags = set()
-        self.skip_depth = 0
+        # Track ignored elements by tag so a mismatched closing tag cannot
+        # expose content from inside script/style/noscript/SVG elements.
+        self.skip_stack = []
 
     def handle_starttag(self, tag, attrs):
         tag = tag.lower()
         if tag in ("script", "style", "noscript", "svg"):
-            self.skip_depth += 1
-        if tag == "title":
+            self.skip_stack.append(tag)
+        if tag == "title" and not self.skip_stack:
             self.in_title = True
-        if tag in ("p", "div", "li", "h1", "h2", "h3", "br", "article"):
+        if not self.skip_stack and tag in ("p", "div", "li", "h1", "h2", "h3", "br", "article"):
             self.parts.append("\\n")
 
     def handle_endtag(self, tag):
         tag = tag.lower()
-        if tag in ("script", "style", "noscript", "svg") and self.skip_depth:
-            self.skip_depth -= 1
+        if tag in ("script", "style", "noscript", "svg") and self.skip_stack and tag == self.skip_stack[-1]:
+            self.skip_stack.pop()
         if tag == "title":
             self.in_title = False
 
     def handle_data(self, data):
-        if self.skip_depth:
+        if self.skip_stack:
             return
         clean = " ".join(data.split())
         if not clean:
