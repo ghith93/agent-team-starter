@@ -11,9 +11,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - "scripts/hostless_readonly_inspect.py"
-      - ".github/workflows/hostless-readonly-inspection.yml"
 
 permissions:
   contents: read
