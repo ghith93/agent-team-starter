@@ -13,7 +13,7 @@ A small, free-first Python agent workflow: **Planner → Executor → Reviewer �
 - Adds a per-run UUID and total elapsed time; stage trace still records status, latency, provider/model, and output size.
 - Adds CLI `--check-config` that reports provider names only and makes no network request; supports UTF-8 task files and opt-in metadata-only telemetry.
 - Sanitizes provider error hints and prevents full provider error messages from being repeated in fallback summaries.
-- Trims surrounding whitespace from environment keys and sets a configurable Gemini default (`gemini-2.5-flash`). Provider availability can change; configure a model enabled for your account.
+- Keeps OpenRouter routing restricted to free model IDs and disables Gemini routing by default; the CLI will not use a configured Gemini key unless the Python caller explicitly opts in. Provider availability and free-model quotas can change.
 - Corrects Colab instructions to match v0.7 folder and archive names.
 - Retains offline reference evaluator and release gate.
 
@@ -29,9 +29,8 @@ python evaluations/benchmark_score.py benchmark_results.csv
 ## Configure
 Use environment variables or Colab Secrets. Never hard-code real credentials.
 ```bash
-export GEMINI_API_KEY="..."
 export OPENROUTER_API_KEY="..."
-# Optional: GEMINI_MODEL=...; OPENROUTER_FREE_MODELS=openrouter/free,provider/model:free
+# Optional: OPENROUTER_FREE_MODELS=openrouter/free,provider/model:free
 ```
 
 ## Run
@@ -70,7 +69,11 @@ Operational references:
 
 The systemd files are templates and are not automatically installed or running. SQLite stores task text in plaintext; never enqueue credentials, private customer data, or confidential prompts. Backups also contain task text. A persistent worker requires a host you control, protected provider credentials, monitoring, and tested recovery. A lease cannot guarantee exactly-once external provider calls after a crash.
 
-## Optional bounded tools\n\nThe `--tools` flag enables allowlisted repository search/read and proxy-gated public-web search/fetch during the draft stage. It is off by default, bounded to a small number of tool calls, and can add provider requests. Public-web access requires the administrator-controlled `AGENT_TEAM_TRUSTED_EGRESS_PROXY` environment variable. See [the tool runtime guide](docs/SAFE_TOOL_RUNTIME.md).\n\n## Result contract
+## Optional bounded tools
+
+The `--tools` flag enables allowlisted repository search/read and proxy-gated public-web search/fetch during the draft stage. It is off by default, bounded to a small number of tool calls, and can add provider requests. Public-web access requires the administrator-controlled `AGENT_TEAM_TRUSTED_EGRESS_PROXY` environment variable. See [the tool runtime guide](docs/SAFE_TOOL_RUNTIME.md).
+
+## Result contract
 Successful `run_team()` results include `ok`, `run_id`, `task`, `final`, `plan`, `draft`, `review`, `revision`, `trace`, `total_duration_ms`, and a limitation note. `final` is the final revision informed by the review stage. Review and revision are model-generated and are not proof of correctness. The fourth stage adds one provider request per authorized task. On a stage failure, `TeamExecutionError` exposes the failed stage, successful prior outputs, and trace.
 
 ## Privacy and security boundaries

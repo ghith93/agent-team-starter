@@ -1,4 +1,4 @@
-"""Free-first model routing with explicit fallback behavior."""
+"""Strict free-model routing by default; optional Gemini requires explicit code opt-in."""
 from __future__ import annotations
 import os
 import re
@@ -126,7 +126,10 @@ class FreeFirstRouter:
         free_models: Optional[list[str]] = None,
         gemini_call: Callable = gemini_chat,
         openrouter_call: Callable = openrouter_chat,
+        enable_gemini: bool = False,
     ):
+        # Gemini may be billable and is therefore disabled unless the caller explicitly opts in.
+        self.enable_gemini = enable_gemini is True
         self.gemini_key = (gemini_key if gemini_key is not None else os.getenv("GEMINI_API_KEY", "")).strip()
         self.openrouter_key = (openrouter_key if openrouter_key is not None else os.getenv("OPENROUTER_API_KEY", "")).strip()
         self.gemini_model = (gemini_model or os.getenv("GEMINI_MODEL", "gemini-2.5-flash")).strip()
@@ -182,7 +185,7 @@ class FreeFirstRouter:
         if not isinstance(prompt, str) or not prompt.strip():
             raise ValueError("Prompt must be a non-empty string.")
         failures = []
-        if self.gemini_key:
+        if self.enable_gemini and self.gemini_key:
             try:
                 return ModelResult("Gemini", self.gemini_model,
                                    self._call_provider_with_retry(self.gemini_call, (self.gemini_key, self.gemini_model, prompt), system_prompt))
@@ -198,4 +201,4 @@ class FreeFirstRouter:
                     # Authentication/payment failures usually affect the whole key/account.
                     if exc.status_code in (401, 403, 402):
                         break
-        raise ProviderError("No model succeeded. " + " | ".join(failures or ["No API keys configured."]))
+        raise ProviderError("No model succeeded. " + " | ".join(failures or ["No enabled provider keys configured."]))

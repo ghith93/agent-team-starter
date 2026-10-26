@@ -22,6 +22,18 @@ class RouterTests(unittest.TestCase):
         router = FreeFirstRouter(free_models=["openrouter/free"], gemini_key="", openrouter_key="")
         self.assertEqual(router.free_models, ["openrouter/free"])
 
+    def test_gemini_key_does_not_enable_provider_by_default(self):
+        calls = []
+        router = FreeFirstRouter(
+            gemini_key="gemini-key", openrouter_key="", free_models=[],
+            gemini_call=lambda *args, **kwargs: calls.append(args) or "should not run",
+        )
+        with self.assertRaises(ProviderError):
+            router.ask("test")
+        self.assertFalse(router.enable_gemini)
+        self.assertEqual(calls, [])
+
+
     def test_falls_back_after_gemini_transient_error(self):
         def bad_gemini(*args):
             raise ProviderError("provider_unavailable", 503)
@@ -31,7 +43,7 @@ class RouterTests(unittest.TestCase):
         router = FreeFirstRouter(
             gemini_key="g", openrouter_key="o",
             free_models=["provider/model:free"],
-            gemini_call=bad_gemini, openrouter_call=good_openrouter
+            gemini_call=bad_gemini, openrouter_call=good_openrouter, enable_gemini=True
         )
         result = router.ask("test", system_prompt="trusted role")
         self.assertEqual(result.provider, "OpenRouter")
@@ -44,7 +56,8 @@ class RouterTests(unittest.TestCase):
             gemini_key="g", openrouter_key="o",
             free_models=["provider/model:free"],
             gemini_call=bad_gemini,
-            openrouter_call=lambda *args: "fallback works"
+            openrouter_call=lambda *args: "fallback works",
+            enable_gemini=True,
         )
         self.assertEqual(router.ask("test").text, "fallback works")
 
