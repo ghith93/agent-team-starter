@@ -72,7 +72,8 @@ def collect_repository_context(root: str | Path) -> str:
                 continue
             safe_lines = []
             for line in text.splitlines():
-                if re.search(r"(?i)(api[_-]?key|secret|password|token)\s*[:=]\s*\S{12,}", line):
+                # Support unquoted assignments and quoted JSON/YAML keys, not only Python-style keys.
+                if re.search(r"""(?i)["']?(api[_-]?key|secret|password|token)["']?\s*[:=]\s*["']?\S{12,}""", line):
                     safe_lines.append("[REDACTED: credential-like line]")
                 else:
                     safe_lines.append(line)
@@ -117,6 +118,7 @@ def extract_patch(text: str) -> str:
             candidate = re.sub(r"\n" + re.escape(fence) + r"\s*$", "", candidate).strip()
             return candidate + "\n"
     raise PatchRejected("The model did not return a unified diff. No files were changed.")
+
 
 def run_patch_task(task: str, *, router=None, workspace: str | Path = ".", validations: tuple[str, ...] = ("compile",)) -> dict:
     if not isinstance(task, str) or not task.strip():
