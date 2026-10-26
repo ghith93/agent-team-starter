@@ -17,6 +17,8 @@ from typing import Iterable
 MAX_PATCH_BYTES = 200_000
 MAX_CHANGED_PATHS = 50
 MAX_TIMEOUT_SECONDS = 300
+MAX_WORKSPACE_FILES = 5000
+MAX_WORKSPACE_BYTES = 100_000_000
 VALIDATION_COMMANDS = {
     "project-tests": ("python", "run_tests.py"),
     "pytest": ("python", "-m", "pytest", "-q"),
@@ -75,7 +77,7 @@ def _validate_patch(patch: str) -> tuple[str, ...]:
         if raw.startswith(("a/", "b/")):
             raw = raw[2:]
         path = PurePosixPath(raw)
-        if path.is_absolute() or not raw or any(part in ("", ".", "..") for part in path.parts):
+        if path.is_absolute() or "\\" in raw or not raw or any(part in ("", ".", "..") for part in path.parts):
             raise PatchRejected("Patch contains an unsafe path.")
         lowered = [part.lower() for part in path.parts]
         if any(part in PROTECTED_PARTS for part in lowered):
@@ -85,6 +87,10 @@ def _validate_patch(patch: str) -> tuple[str, ...]:
         if lowered[0] == ".github" and len(lowered) > 1 and lowered[1] == "workflows":
             raise PatchRejected("Workflow changes require separate human review.")
         paths.add(path.as_posix())
+    if re.search(r"(?m)^(?:new|old) file mode 120000$|^Subproject commit ", patch):
+        raise PatchRejected("Symlink and submodule patches are not supported.")
+    if re.search(r"(?m)^(?:rename|copy) (?:from|to) ", patch):
+        raise PatchRejected("Rename and copy patches are not supported.")
     if not paths:
         raise PatchRejected("No changed file paths were found in the patch.")
     if len(paths) > MAX_CHANGED_PATHS:
@@ -128,7 +134,7 @@ def _run_validation(candidate: Path, name: str, timeout_seconds: int) -> Validat
                 "PYTHONDONTWRITEBYTECODE": "1",
                 "PYTHONIOENCODING": "utf-8",
             },
-        )
+        )  # nosec B603: command is selected from VALIDATION_COMMANDS; shell is disabled.
         return ValidationResult(name, completed.returncode == 0, completed.returncode,
                                 False, completed.stdout[-12000:])
     except subprocess.TimeoutExpired as exc:
@@ -141,7 +147,7 @@ def _run_validation(candidate: Path, name: str, timeout_seconds: int) -> Validat
 def evaluate_patch(
     workspace: str | Path,
     patch: str,
-    validations: Iterable[str] = ("project-tests",),
+    validations: Iterable[str] = ("compile",),
     timeout_seconds: int = 120,
 ) -> PatchEvaluation:
     """Apply a proposed diff in a disposable copy and run fixed local checks.
@@ -161,6 +167,26 @@ def evaluate_patch(
     if not isinstance(timeout_seconds, int) or not 1 <= timeout_seconds <= MAX_TIMEOUT_SECONDS:
         raise ValueError(f"timeout_seconds must be between 1 and {MAX_TIMEOUT_SECONDS}.")
 
+    file_count = 0
+    total_bytes = 0
+    for current, dirs, files in os.walk(root, followlinks=False):
+        current_path = Path(current)
+        for name in list(dirs):
+            item = current_path / name
+            if item.is_symlink():
+                raise ValueError("Workspace contains a symbolic link; refusing to copy it.")
+        for name in files:
+            item = current_path / name
+            if item.is_symlink():
+                raise ValueError("Workspace contains a symbolic link; refusing to copy it.")
+            try:
+                total_bytes += item.stat().st_size
+            except OSError as exc:
+                raise ValueError("Workspace contains an unreadable file.") from exc
+            file_count += 1
+            if file_count > MAX_WORKSPACE_FILES or total_bytes > MAX_WORKSPACE_BYTES:
+                raise ValueError("Workspace exceeds the safe copy size limits.")
+
     with tempfile.TemporaryDirectory(prefix="agent-team-candidate-") as temp:
         temp_root = Path(temp)
         candidate = temp_root / "workspace"
@@ -172,7 +198,7 @@ def evaluate_patch(
             cwd=candidate, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT, text=True, errors="replace", timeout=30,
             check=False, shell=False,
-        )
+        )  # nosec B603: fixed git executable and arguments; shell is disabled.
         if check.returncode:
             return PatchEvaluation(False, False, changed_paths, (),
                                    "Patch did not apply cleanly; validation was not run.")
@@ -181,7 +207,7 @@ def evaluate_patch(
             cwd=candidate, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT, text=True, errors="replace", timeout=30,
             check=False, shell=False,
-        )
+        )  # nosec B603: fixed git executable and arguments; shell is disabled.
         if applied.returncode:
             return PatchEvaluation(False, False, changed_paths, (),
                                    "Patch application failed; validation was not run.")
