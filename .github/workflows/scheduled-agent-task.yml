@@ -76,7 +76,7 @@ jobs:
               print("FAIL: agent team execution failed:", type(exc).__name__)
               sys.exit(1)
 
-          expected = ["plan", "draft", "review"]
+          expected = ["plan", "draft", "review", "revise"]
           trace = result.get("trace", [])
           if result.get("ok") is not True or [item.get("stage") for item in trace] != expected:
               print("FAIL: agent team did not complete all three expected stages.")
@@ -94,13 +94,14 @@ jobs:
               "plan": result.get("plan"),
               "draft": result.get("draft"),
               "review": result.get("review"),
+              "revision": result.get("revision"),
               "trace": trace,
           }
           Path("scheduled-agent-task-result.json").write_text(
               json.dumps(report, ensure_ascii=False, indent=2) + "\n",
               encoding="utf-8",
           )
-          print("PASS: planner, executor, and reviewer completed.")
+          print("PASS: planner, executor, reviewer, and revision completed.")
           for item in trace:
               print("Stage:", item["stage"], "| duration_ms:", item.get("duration_ms", "unknown"))
           print("Task and model outputs are stored in a short-lived artifact, not in job logs.")
