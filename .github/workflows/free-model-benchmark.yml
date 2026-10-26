@@ -55,7 +55,7 @@ jobs:
         run: python -m pip install -r requirements.txt
 
       - name: Run fixed free-model coding benchmark
-        run: python -m agent_team.benchmark --run --validation unittest --models "cohere/north-mini-code:free,nvidia/nemotron-3-ultra-550b-a55b:free,openrouter/free"
+        run: python -m agent_team.benchmark --run --validation unittest --models "$OPENROUTER_FREE_MODELS"
 
       - name: Upload benchmark report for one day
         if: always() && hashFiles('free-model-benchmark-result.json') != ''
