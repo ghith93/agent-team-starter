@@ -39,6 +39,7 @@ PATTERNS = [
 def redact_text(value: str) -> str:
     if TOKEN:
         value = value.replace(TOKEN, "[REDACTED_HOSTLESS_TOKEN]")
+    value = re.sub(r"(?i)\\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\b", "[REDACTED_EMAIL]", value)
     for pattern, replacement in PATTERNS:
         value = pattern.sub(replacement, value)
     return value[:MAX_LOG_CHARS] + ("\n[TRUNCATED]" if len(value) > MAX_LOG_CHARS else "")
@@ -196,11 +197,12 @@ def main() -> int:
         None,
     )
     deployment_logs_check = None
+    deployment_details_check = None
     if latest_deployment:
         deployment_id = str(latest_deployment["id"])
-        deployment_logs_check = get_json(
-            worker_path + "/deployments/" + quote(deployment_id, safe="") + "/logs"
-        )
+        deployment_path = worker_path + "/deployments/" + quote(deployment_id, safe="")
+        deployment_details_check = get_json(deployment_path)
+        deployment_logs_check = get_json(deployment_path + "/logs")
 
     worker_data = worker_check.get("data")
     latest_commit = latest_deployment.get("gitCommitHash") if latest_deployment else None
@@ -219,6 +221,14 @@ def main() -> int:
             "latest_deployment_status": latest_deployment.get("status") if latest_deployment else None,
             "latest_deployment_commit": latest_commit,
             "latest_successful_deployment_id": latest_successful.get("id") if latest_successful else None,
+            "runtime_logs_api_failed": (
+                runtime_logs_check.get("status") != 200
+                if isinstance(runtime_logs_check, dict) else None
+            ),
+            "deployment_logs_fallback_succeeded": (
+                deployment_logs_check.get("status") == 200
+                if isinstance(deployment_logs_check, dict) else None
+            ),
             "worker_active_deployment_matches_latest": (
                 active_deployment == latest_deployment_id
                 if active_deployment and latest_deployment_id else None
@@ -233,6 +243,7 @@ def main() -> int:
             "deployments": deployments_check,
             "runtime_logs": runtime_logs_check,
             "runtime_logs_project_filtered": runtime_logs_project_filtered,
+            "latest_deployment_details": deployment_details_check,
             "latest_deployment_logs_fallback": deployment_logs_check,
         },
     }
