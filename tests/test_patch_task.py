@@ -37,7 +37,7 @@ class PatchTaskTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / "settings.py").write_text(
-                "API_KEY = 'abcdefghijklmnopqrstuvwxyz'\nnormal = True\n",
+                "API_KEY = 'fake-test-value'\nnormal = True\n",
                 encoding="utf-8",
             )
             context = collect_repository_context(root)
