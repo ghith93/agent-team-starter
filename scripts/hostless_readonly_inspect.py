@@ -55,6 +55,19 @@ def redact(value, key: str = ""):
         return redact_text(value)
     return value
 
+def summarize_log_processes(value):
+    """Classify which log streams an API response actually contains."""
+    if not isinstance(value, list):
+        return None, None
+    processes = sorted({
+        item.get("process")
+        for item in value
+        if isinstance(item, dict) and isinstance(item.get("process"), str)
+    })
+    contains_runtime = any(process.lower() != "build" for process in processes)
+    return processes[:10], contains_runtime
+
+
 def get_json(path: str):
     req = Request(
         API_BASE + path,
@@ -229,6 +242,14 @@ def main() -> int:
         deployment_details_check = get_json(deployment_path)
         deployment_logs_check = get_json(deployment_path + "/logs")
 
+    fallback_log_data = (
+        deployment_logs_check.get("data")
+        if isinstance(deployment_logs_check, dict) else None
+    )
+    fallback_log_processes, fallback_contains_runtime_logs = summarize_log_processes(
+        fallback_log_data
+    )
+
     worker_data = worker_check.get("data")
     latest_commit = latest_deployment.get("gitCommitHash") if latest_deployment else None
     worker_commit = worker_data.get("gitCommitHash") if isinstance(worker_data, dict) else None
@@ -254,6 +275,8 @@ def main() -> int:
                 deployment_logs_check.get("status") == 200
                 if isinstance(deployment_logs_check, dict) else None
             ),
+            "deployment_logs_fallback_processes": fallback_log_processes,
+            "deployment_logs_fallback_contains_runtime_logs": fallback_contains_runtime_logs,
             "worker_active_deployment_matches_latest": (
                 active_deployment == latest_deployment_id
                 if active_deployment and latest_deployment_id else None
