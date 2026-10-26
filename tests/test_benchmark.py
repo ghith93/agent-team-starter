@@ -2,7 +2,7 @@ import os
 import unittest
 from unittest.mock import patch
 
-from agent_team.benchmark import _load_tasks, _model_is_free, run_benchmark
+from agent_team.benchmark import _load_tasks, _model_is_free, _safe_diagnostic, run_benchmark
 
 
 class BenchmarkTests(unittest.TestCase):
@@ -19,6 +19,13 @@ class BenchmarkTests(unittest.TestCase):
         self.assertTrue(_model_is_free("thinkingmachines/inkling-small:free"))
         self.assertFalse(_model_is_free("openai/gpt-4o"))
         self.assertFalse(_model_is_free("cohere/north-mini-code"))
+
+    def test_diagnostics_are_bounded_and_redact_credentials(self):
+        message = "HTTP error Bearer abcdefghijklmnop api_key=supersecretvalue " + ("x" * 400)
+        diagnostic = _safe_diagnostic(message)
+        self.assertNotIn("abcdefghijklmnop", diagnostic)
+        self.assertNotIn("supersecretvalue", diagnostic)
+        self.assertLessEqual(len(diagnostic), 240)
 
     def test_provider_execution_is_gated_before_router_or_provider_calls(self):
         with patch.dict(os.environ, {
