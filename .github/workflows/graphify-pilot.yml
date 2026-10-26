@@ -2,10 +2,21 @@ name: Graphify code-only pilot
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "agent_team/**"
+      - "tests/**"
+      - "requirements.txt"
+      - ".github/workflows/graphify-pilot.yml"
   push:
     branches:
       - main
     paths:
+      - "agent_team/**"
+      - "tests/**"
+      - "requirements.txt"
       - ".github/workflows/graphify-pilot.yml"
 
 permissions:
