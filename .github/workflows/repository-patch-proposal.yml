@@ -95,7 +95,7 @@ jobs:
 
   create-pull-request:
     needs: propose-and-validate
-    if: inputs.authorize_open_pr == true && needs.propose-and-validate.result == 'success'
+    if: inputs.authorize_open_pr == true && inputs.validation_level != 'compile' && inputs.authorize_test_execution == true && needs.propose-and-validate.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
