@@ -9,7 +9,7 @@ The agent team can optionally use a small allowlist of read-only tools during th
 - `search_public_web`: search public web results through DuckDuckGo's HTML results page.
 - `fetch_public_url`: fetch a public HTML/text page and extract readable text.
 
-The model requests tools using a strict JSON action format. Only registered tool names can execute. Calls are capped (default 3; hard maximum 5), output is bounded, errors are sanitized, and tool names/statuses—not arguments or returned page content—are added to stage trace metadata. Tool results are untrusted data and must not override the agent's role or user task.
+Web search sends the generated query to DuckDuckGo; page fetching sends the requested URL to the configured proxy and destination site. Do not enable web tools for confidential tasks unless you are authorized to disclose those queries and URLs.\n\nThe model requests tools using a strict JSON action format. Only registered tool names can execute. Calls are capped (default 3; hard maximum 5), output is bounded, errors are sanitized, and tool names/statuses—not arguments or returned page content—are added to stage trace metadata. Tool results are untrusted data and must not override the agent's role or user task.
 
 ## Enable locally
 
