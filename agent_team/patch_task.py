@@ -96,14 +96,14 @@ def extract_patch(text: str) -> str:
 
     fence = chr(96) * 3
     # Consider every fenced block; models sometimes put examples or explanations first.
-    for match in re.finditer(re.escape(fence) + r"([^\\n]*)\\n(.*?)" + re.escape(fence), text, flags=re.DOTALL):
+    for match in re.finditer(re.escape(fence) + r"([^\n]*)\n(.*?)" + re.escape(fence), text, flags=re.DOTALL):
         candidate = match.group(2).strip()
         if is_diff(candidate):
-            return candidate + "\\n"
+            return candidate + "\n"
 
     candidate = text.strip()
     if is_diff(candidate):
-        return candidate + "\\n"
+        return candidate + "\n"
 
     # Accept a plain-text preamble, but start only at a standard diff header.
     lines = candidate.splitlines()
@@ -112,10 +112,10 @@ def extract_patch(text: str) -> str:
         if line.startswith("diff --git a/") or line.startswith("--- a/") or line.startswith("--- /dev/null")
     ), None)
     if start is not None:
-        candidate = "\\n".join(lines[start:]).strip()
+        candidate = "\n".join(lines[start:]).strip()
         if is_diff(candidate):
-            candidate = re.sub(r"\\n" + re.escape(fence) + r"\\s*$", "", candidate).strip()
-            return candidate + "\\n"
+            candidate = re.sub(r"\n" + re.escape(fence) + r"\s*$", "", candidate).strip()
+            return candidate + "\n"
     raise PatchRejected("The model did not return a unified diff. No files were changed.")
 
 def run_patch_task(task: str, *, router=None, workspace: str | Path = ".", validations: tuple[str, ...] = ("compile",)) -> dict:
