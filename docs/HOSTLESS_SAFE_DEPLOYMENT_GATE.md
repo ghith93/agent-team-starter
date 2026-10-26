@@ -1,4 +1,6 @@
-# Hostless deployment gate (safe, no-card path)
+> **Retired on 2026-10-26:** this runbook is no longer an active deployment path. The repository's Hostless integration has been removed. Do not create or connect a Hostless resource based on this document. For occasional tasks, use [the on-demand GitHub Actions runbook](ON_DEMAND_GITHUB_ACTIONS_RUNBOOK.md). Repository changes cannot cancel an external Hostless resource or subscription; handle that separately in the Hostless account dashboard if one exists.
+
+# Retired: Hostless deployment gate (historical reference)
 
 Status: **NOT READY FOR PRODUCTION**. This runbook prevents connecting a live queue to a worker before storage and provider-call behavior are verified.
 
