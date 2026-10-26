@@ -13,6 +13,7 @@ import tempfile
 from dataclasses import asdict, dataclass
 from pathlib import Path, PurePosixPath
 from typing import Iterable
+from .sandbox import run_sandboxed_command
 
 MAX_PATCH_BYTES = 200_000
 MAX_CHANGED_PATHS = 50
@@ -114,7 +115,18 @@ def _ignore_copy(_directory: str, names: list[str]) -> set[str]:
     return ignored
 
 
-def _run_validation(candidate: Path, name: str, timeout_seconds: int) -> ValidationResult:
+def _run_validation(
+    candidate: Path, name: str, timeout_seconds: int, trusted_requirements_root: Path | None = None,
+) -> ValidationResult:
+    if name in {"project-tests", "pytest", "unittest"}:
+        sandbox = run_sandboxed_command(
+            candidate,
+            trusted_requirements_root or candidate,
+            VALIDATION_COMMANDS[name],
+            name,
+            timeout_seconds,
+        )
+        return ValidationResult(name, sandbox.passed, sandbox.returncode, sandbox.timed_out, sandbox.output)
     try:
         completed = subprocess.run(  # nosec B603: fixed command allowlist; shell=False and environment is restricted.
             VALIDATION_COMMANDS[name],
@@ -211,7 +223,7 @@ def evaluate_patch(
         if applied.returncode:
             return PatchEvaluation(False, False, changed_paths, (),
                                    "Patch application failed; validation was not run.")
-        results = tuple(_run_validation(candidate, name, timeout_seconds) for name in selected)
+        results = tuple(_run_validation(candidate, name, timeout_seconds, root) for name in selected)
         passed = all(result.passed for result in results)
         return PatchEvaluation(
             passed, True, changed_paths, results,

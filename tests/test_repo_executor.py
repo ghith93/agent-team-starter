@@ -1,8 +1,10 @@
 import tempfile
 import unittest
+from unittest.mock import patch as patcher
 from pathlib import Path
 
 from agent_team.repo_executor import PatchRejected, _validate_patch, evaluate_patch
+from agent_team.sandbox import SandboxResult
 
 
 class RepoExecutorTests(unittest.TestCase):
@@ -36,6 +38,20 @@ class RepoExecutorTests(unittest.TestCase):
             self.assertTrue(result.applied_in_temporary_copy)
             self.assertEqual(result.changed_paths, ("README.md",))
             self.assertEqual((root / "README.md").read_text(encoding="utf-8"), "old\n")
+
+    def test_project_tests_are_delegated_to_sandbox_and_never_host_run(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "README.md").write_text("old\n", encoding="utf-8")
+            patch = "--- a/README.md\n+++ b/README.md\n@@ -1 +1 @@\n-old\n+new\n"
+            with patcher("agent_team.repo_executor.run_sandboxed_command") as sandbox:
+                sandbox.return_value = SandboxResult(False, None, False, "Docker is required; tests not run.")
+                result = evaluate_patch(root, patch, validations=("unittest",))
+        self.assertFalse(result.accepted)
+        self.assertTrue(result.applied_in_temporary_copy)
+        self.assertFalse(result.validations[0].passed)
+        self.assertIn("Docker is required", result.validations[0].output)
+        sandbox.assert_called_once()
 
     def test_rejects_non_diff(self):
         with self.assertRaises(PatchRejected):
