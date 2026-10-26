@@ -58,17 +58,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for variant in baseline override-protobufjs-7.6.6 override-protobufjs-7.6.6-audit-fix cli-3.62.0 cli-3.62.0-protobufjs-7.6.6; do
+          for variant in baseline override-protobufjs-7.6.6 override-protobufjs-7.6.6-audit-fix cli-3.62.0 cli-3.62.0-protobufjs-7.6.6 cli-3.32.29 cli-3.32.29-protobufjs-7.6.6 targeted-protobufjs-zod-sharp; do
             DIR="$GITHUB_WORKSPACE/remediation-output/$variant"
             mkdir -p "$DIR"
             cd "$DIR"
             VARIANT_VERSION="$CLI_VERSION"
             if [[ "$variant" == cli-3.62.0* ]]; then
               VARIANT_VERSION="3.62.0"
+            elif [[ "$variant" == cli-3.32.29* ]]; then
+              VARIANT_VERSION="3.32.29"
             fi
-            printf '{"name":"ruflo-remediation-lab","private":true,"version":"1.0.0","dependencies":{"@claude-flow/cli":"%s"}}\n' "$VARIANT_VERSION" > package.json
-            if [[ "$variant" == *protobufjs* ]]; then
+            printf '{"name":"ruflo-remediation-lab","private":true,"version":"1.0.0","dependencies":{"@claude-flow/cli":"%s"}}\\n' "$VARIANT_VERSION" > package.json
+            if [[ "$variant" == *protobufjs* || "$variant" == targeted-* ]]; then
               npm pkg set 'overrides.protobufjs=7.6.6'
+            fi
+            if [[ "$variant" == targeted-* ]]; then
+              npm pkg set 'overrides.zod=4.6.6' 'overrides.sharp=0.35.5'
             fi
             npm install --package-lock-only --ignore-scripts --no-audit --no-fund
             if [[ "$variant" == *-audit-fix ]]; then
