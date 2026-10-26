@@ -87,7 +87,7 @@ def collect_repository_context(root: str | Path) -> str:
 
 
 def extract_patch(text: str) -> str:
-    """Extract one unified diff from plain model output or a single fenced block."""
+    """Extract one unified diff from plain output or a single fenced block."""
     if not isinstance(text, str) or not text.strip():
         raise PatchRejected("The model returned an empty patch.")
     fence = chr(96) * 3
@@ -95,6 +95,16 @@ def extract_patch(text: str) -> str:
     candidate = fenced.group(1).strip() if fenced else text.strip()
     if candidate.startswith("diff --git ") or candidate.startswith("--- "):
         return candidate + "\n"
+    if not fenced:
+        lines = candidate.splitlines()
+        start = next((
+            index for index, line in enumerate(lines)
+            if line.startswith("diff --git a/") or line.startswith("--- a/") or line.startswith("--- /dev/null")
+        ), None)
+        if start is not None:
+            candidate = "\n".join(lines[start:]).strip()
+            if candidate.startswith("diff --git ") or candidate.startswith("--- "):
+                return candidate + "\n"
     raise PatchRejected("The model did not return a unified diff. No files were changed.")
 
 

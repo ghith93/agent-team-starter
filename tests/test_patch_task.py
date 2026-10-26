@@ -19,6 +19,15 @@ class PatchTaskTests(unittest.TestCase):
         fence = chr(96) * 3
         self.assertEqual(extract_patch(fence + "diff\n" + patch + "\n" + fence).strip(), patch)
 
+    def test_extracts_diff_after_short_preamble(self):
+        patch = "--- a/README.md\n+++ b/README.md\n@@ -1 +1 @@\n-old\n+new\n"
+        response = "Here is the requested change:\n\n" + patch
+        self.assertEqual(extract_patch(response), patch)
+
+    def test_rejects_pseudo_file_headers_after_preamble(self):
+        with self.assertRaises(PatchRejected):
+            extract_patch("Here is a patch:\n--- FILE: README.md ---\n+++ FILE: README.md +++\n")
+
     def test_rejects_non_diff_model_output(self):
         with self.assertRaises(PatchRejected):
             extract_patch("Here are some suggestions, but no patch.")
