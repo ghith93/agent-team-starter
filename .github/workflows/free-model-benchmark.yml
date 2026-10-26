@@ -37,7 +37,7 @@ jobs:
       contents: read
     env:
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-      OPENROUTER_FREE_MODELS: poolside/laguna-s-2.1:free,thinkingmachines/inkling-small:free,nvidia/nemotron-3-ultra-550b-a55b:free
+      OPENROUTER_FREE_MODELS: cohere/north-mini-code:free,qwen/qwen3.8-27b:free,nvidia/nemotron-3-ultra-550b-a55b:free
       AUTHORIZE_BENCHMARK_PROVIDER_CALLS: "true"
       AUTHORIZE_BENCHMARK_TEST_EXECUTION: "true"
     steps:

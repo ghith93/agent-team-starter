@@ -2,7 +2,7 @@ import os
 import unittest
 from unittest.mock import patch
 
-from agent_team.benchmark import _load_tasks, _model_is_free, _safe_diagnostic, run_benchmark
+from agent_team.benchmark import DEFAULT_MODELS, _load_tasks, _model_is_free, _safe_diagnostic, run_benchmark
 
 
 class BenchmarkTests(unittest.TestCase):
@@ -16,9 +16,16 @@ class BenchmarkTests(unittest.TestCase):
         self.assertTrue(_model_is_free("openrouter/free"))
         self.assertTrue(_model_is_free("cohere/north-mini-code:free"))
         self.assertTrue(_model_is_free("poolside/laguna-s-2.1:free"))
-        self.assertTrue(_model_is_free("thinkingmachines/inkling-small:free"))
+        self.assertTrue(_model_is_free("qwen/qwen3.8-27b:free"))
         self.assertFalse(_model_is_free("openai/gpt-4o"))
         self.assertFalse(_model_is_free("cohere/north-mini-code"))
+
+    def test_default_benchmark_roster_uses_pinned_free_models(self):
+        self.assertEqual(len(DEFAULT_MODELS), 3)
+        self.assertEqual(len(set(DEFAULT_MODELS)), 3)
+        self.assertIn("cohere/north-mini-code:free", DEFAULT_MODELS)
+        self.assertIn("qwen/qwen3.8-27b:free", DEFAULT_MODELS)
+        self.assertTrue(all(_model_is_free(model) for model in DEFAULT_MODELS))
 
     def test_diagnostics_are_bounded_and_redact_credentials(self):
         message = "HTTP error Bearer abcdefghijklmnop api_key=supersecretvalue " + ("x" * 400)
