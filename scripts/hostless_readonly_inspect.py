@@ -157,6 +157,18 @@ def main() -> int:
     deployments_check, deployment_wait = wait_for_target_deployment(worker_path)
     worker_check = get_json(worker_path)
     runtime_logs_check = get_json(worker_path + "/logs")
+    worker_data_for_logs = worker_check.get("data")
+    project_id_for_logs = (
+        worker_data_for_logs.get("projectId")
+        if isinstance(worker_data_for_logs, dict) else None
+    )
+    runtime_logs_project_filtered = None
+    if runtime_logs_check.get("status") != 200 and project_id_for_logs:
+        # List endpoints can be scoped to a project. Retry once with the
+        # worker's own project ID in case an unfiltered log query fails.
+        runtime_logs_project_filtered = get_json(
+            worker_path + "/logs?projectId=" + quote(str(project_id_for_logs), safe="")
+        )
 
     # Hostless may fail the aggregate worker log endpoint while serving
     # deployment-scoped logs. Try the newest successful deployment as a
@@ -220,6 +232,7 @@ def main() -> int:
             "worker": worker_check,
             "deployments": deployments_check,
             "runtime_logs": runtime_logs_check,
+            "runtime_logs_project_filtered": runtime_logs_project_filtered,
             "latest_deployment_logs_fallback": deployment_logs_check,
         },
     }
