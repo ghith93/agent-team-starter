@@ -78,14 +78,22 @@ def _validate_patch(patch: str) -> tuple[str, ...]:
         raise PatchRejected("Binary patches are not supported.")
 
     paths: set[str] = set()
+    old_headers: list[str] = []
+    new_headers: list[str] = []
     for line in patch.splitlines():
         if not (line.startswith("+++ ") or line.startswith("--- ")):
             continue
+        is_old = line.startswith("--- ")
         raw = line[4:].split("\t", 1)[0].strip()
         if raw == "/dev/null":
+            (old_headers if is_old else new_headers).append(raw)
             continue
-        if raw.startswith(("a/", "b/")):
-            raw = raw[2:]
+        expected_prefix = "a/" if is_old else "b/"
+        if not raw.startswith(expected_prefix):
+            label = "old-file" if is_old else "new-file"
+            raise PatchRejected(f"Malformed {label} header; expected '{expected_prefix}<path>' or /dev/null.")
+        (old_headers if is_old else new_headers).append(raw)
+        raw = raw[2:]
         path = PurePosixPath(raw)
         if path.is_absolute() or "\\" in raw or not raw or any(part in ("", ".", "..") for part in path.parts):
             raise PatchRejected("Patch contains an unsafe path.")
@@ -97,6 +105,13 @@ def _validate_patch(patch: str) -> tuple[str, ...]:
         if lowered[0] == ".github" and len(lowered) > 1 and lowered[1] == "workflows":
             raise PatchRejected("Workflow changes require separate human review.")
         paths.add(path.as_posix())
+    if not old_headers or len(old_headers) != len(new_headers):
+        raise PatchRejected("Patch must contain matching old-file and new-file headers.")
+    for old_path, new_path in zip(old_headers, new_headers):
+        if old_path == "/dev/null" and new_path == "/dev/null":
+            raise PatchRejected("Patch cannot use /dev/null for both file headers.")
+        if old_path != "/dev/null" and new_path != "/dev/null" and old_path[2:] != new_path[2:]:
+            raise PatchRejected("Old-file and new-file headers must name the same path.")
     if re.search(r"(?m)^(?:new|old) file mode 120000$|^Subproject commit ", patch):
         raise PatchRejected("Symlink and submodule patches are not supported.")
     if re.search(r"(?m)^(?:rename|copy) (?:from|to) ", patch):
