@@ -21,15 +21,15 @@ class PatchTaskTests(unittest.TestCase):
 
     def test_skips_non_diff_fence_and_extracts_later_diff_fence(self):
         fence = chr(96) * 3
-        patch = "--- a/README.md\\n+++ b/README.md\\n@@ -1 +1 @@\\n-old\\n+new"
-        response = fence + "python\\nprint(1)\\n" + fence + "\\n"
-        response += fence + "diff\\n" + patch + "\\n" + fence
+        patch = "--- a/README.md\n+++ b/README.md\n@@ -1 +1 @@\n-old\n+new"
+        response = fence + "python\nprint(1)\n" + fence + "\n"
+        response += fence + "diff\n" + patch + "\n" + fence
         self.assertEqual(extract_patch(response).strip(), patch)
 
     def test_extracts_diff_from_language_labeled_fence(self):
         fence = chr(96) * 3
-        patch = "--- a/README.md\\n+++ b/README.md\\n@@ -1 +1 @@\\n-old\\n+new"
-        self.assertEqual(extract_patch(fence + "diff\\n" + patch + "\\n" + fence).strip(), patch)
+        patch = "--- a/README.md\n+++ b/README.md\n@@ -1 +1 @@\n-old\n+new"
+        self.assertEqual(extract_patch(fence + "diff\n" + patch + "\n" + fence).strip(), patch)
     def test_extracts_diff_after_short_preamble(self):
         patch = "--- a/README.md\n+++ b/README.md\n@@ -1 +1 @@\n-old\n+new\n"
         response = "Here is the requested change:\n\n" + patch
