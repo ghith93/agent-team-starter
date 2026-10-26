@@ -160,7 +160,9 @@ def main(argv=None):
                 captured_out, captured_err = io.StringIO(), io.StringIO()
                 nested_args = ["--queue-db", str(args.queue_db), "--run-next",
                                "--lease-seconds", str(args.lease_seconds),
-                               "--retry-delay-seconds", str(args.retry_delay_seconds)]\n                if args.tools:\n                    nested_args.append("--tools")
+                               "--retry-delay-seconds", str(args.retry_delay_seconds)]
+                if args.tools:
+                    nested_args.append("--tools")
                 with contextlib.redirect_stdout(captured_out), contextlib.redirect_stderr(captured_err):
                     code = main(nested_args)
                 output = captured_out.getvalue().strip()
