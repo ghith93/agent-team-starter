@@ -58,7 +58,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for variant in baseline override-protobufjs-7.6.6 override-protobufjs-7.6.6-audit-fix cli-3.62.0 cli-3.62.0-protobufjs-7.6.6 cli-3.32.29 cli-3.32.29-protobufjs-7.6.6 targeted-protobufjs-zod-sharp targeted-protobufjs-zod-sharp-otel targeted-protobufjs-zod-sharp-otel-audit-fix targeted-protobufjs-zod-sharp-otel-core-resources-2.8 targeted-protobufjs-zod-sharp-otel-core-resources-2.9; do
+          for variant in baseline override-protobufjs-7.6.6 override-protobufjs-7.6.6-audit-fix cli-3.62.0 cli-3.62.0-protobufjs-7.6.6 cli-3.32.29 cli-3.32.29-protobufjs-7.6.6 targeted-protobufjs-zod-sharp targeted-protobufjs-zod-sharp-otel targeted-protobufjs-zod-sharp-otel-audit-fix negative-control-global-otel-core-resources-2.9; do
             DIR="$GITHUB_WORKSPACE/remediation-output/$variant"
             mkdir -p "$DIR"
             cd "$DIR"
@@ -78,9 +78,7 @@ jobs:
             if [[ "$variant" == *-otel* ]]; then
               npm pkg set 'overrides.@opentelemetry/propagator-jaeger=2.9.0' 'overrides.@opentelemetry/sdk-node=0.220.0'
             fi
-            if [[ "$variant" == *core-resources-2.8 ]]; then
-              npm pkg set 'overrides.@opentelemetry/core=2.8.0' 'overrides.@opentelemetry/resources=2.8.0'
-            elif [[ "$variant" == *core-resources-2.9 ]]; then
+            if [[ "$variant" == negative-control-global-otel-core-resources-2.9 ]]; then
               npm pkg set 'overrides.@opentelemetry/core=2.9.0' 'overrides.@opentelemetry/resources=2.9.0'
             fi
             npm install --package-lock-only --ignore-scripts --no-audit --no-fund
