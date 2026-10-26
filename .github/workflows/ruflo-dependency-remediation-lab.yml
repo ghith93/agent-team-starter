@@ -53,15 +53,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for variant in baseline override-protobufjs-7.6.6; do
+          for variant in baseline override-protobufjs-7.6.6 override-protobufjs-7.6.6-audit-fix; do
             DIR="$GITHUB_WORKSPACE/remediation-output/$variant"
             mkdir -p "$DIR"
             cd "$DIR"
             printf '{"name":"ruflo-remediation-lab","private":true,"version":"1.0.0","dependencies":{"@claude-flow/cli":"%s"}}\n' "$CLI_VERSION" > package.json
-            if [[ "$variant" == "override-protobufjs-7.6.6" ]]; then
+            if [[ "$variant" == override-protobufjs-* ]]; then
               npm pkg set 'overrides.protobufjs=7.6.6'
             fi
             npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+            if [[ "$variant" == *-audit-fix ]]; then
+              set +e
+              npm audit fix --package-lock-only --ignore-scripts --no-fund > npm-audit-fix.log 2>&1
+              FIX_EXIT=$?
+              set -e
+              printf '%s\n' "$FIX_EXIT" > npm-audit-fix-exit-code.txt
+            fi
             set +e
             npm audit --json > npm-audit.json
             AUDIT_EXIT=$?
