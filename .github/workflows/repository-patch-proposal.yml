@@ -147,6 +147,10 @@ jobs:
                   raise SystemExit("Refusing PR: protected path.")
               if parts[0] == ".github" and len(parts) > 1 and parts[1] == "workflows":
                   raise SystemExit("Refusing PR: workflow changes require separate review.")
+              if "tests" in parts or "test" in parts or path.name.lower().startswith("test_"):
+                  raise SystemExit("Refusing PR: test-file changes require separate review.")
+              if path.name.lower() in {"requirements.txt", "pyproject.toml", "setup.py", "setup.cfg", "pipfile", "poetry.lock", "uv.lock", "dockerfile"}:
+                  raise SystemExit("Refusing PR: dependency/build configuration changes require separate review.")
               normalized.add(path.as_posix())
           Path("proposed.patch").write_text(patch, encoding="utf-8")
           subprocess.run(["git", "apply", "--check", "proposed.patch"], check=True, timeout=30)
