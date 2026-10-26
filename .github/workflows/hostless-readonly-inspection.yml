@@ -1,6 +1,8 @@
 name: Hostless read-only worker inspection
 
 on:
+  # This workflow uses HOSTLESS_TOKEN. Keep it manual-only so arbitrary main pushes
+  # cannot automatically execute the inspection script with provider credentials.
   workflow_dispatch:
     inputs:
       worker_name:
@@ -8,9 +10,6 @@ on:
         required: true
         default: "agent-team-worker"
         type: string
-  push:
-    branches:
-      - main
 
 permissions:
   contents: read
