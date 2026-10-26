@@ -80,7 +80,35 @@ def _validate_patch(patch: str) -> tuple[str, ...]:
     paths: set[str] = set()
     old_headers: list[str] = []
     new_headers: list[str] = []
+    in_hunk = False
+    old_remaining = 0
+    new_remaining = 0
+    hunk_header = re.compile(r"^@@ -[0-9]+(?:,([0-9]+))? \+[0-9]+(?:,([0-9]+))? @@")
     for line in patch.splitlines():
+        if line.startswith("diff --git "):
+            in_hunk = False
+            continue
+        match = hunk_header.match(line)
+        if match:
+            in_hunk = True
+            old_remaining = int(match.group(1) or "1")
+            new_remaining = int(match.group(2) or "1")
+            if old_remaining == 0 and new_remaining == 0:
+                in_hunk = False
+            continue
+        if in_hunk:
+            if line.startswith("\\ No newline at end of file"):
+                continue
+            if line.startswith(" "):
+                old_remaining -= 1
+                new_remaining -= 1
+            elif line.startswith("-"):
+                old_remaining -= 1
+            elif line.startswith("+"):
+                new_remaining -= 1
+            if old_remaining <= 0 and new_remaining <= 0:
+                in_hunk = False
+            continue
         if not (line.startswith("+++ ") or line.startswith("--- ")):
             continue
         is_old = line.startswith("--- ")
