@@ -138,7 +138,7 @@ def test_hostless_credential_workflow_is_manual_only():
         / "hostless-readonly-inspection.yml"
     )
     workflow = workflow_path.read_text(encoding="utf-8")
-    trigger_match = re.search(r"(?ms)^on:\n(.*?)(?=^\\S|\\Z)", workflow)
+    trigger_match = re.search(r"(?ms)^on:\n(.*?)(?=^\S|\Z)", workflow)
     assert trigger_match is not None
     triggers = trigger_match.group(1)
     assert re.search(r"(?m)^  workflow_dispatch:", triggers)
