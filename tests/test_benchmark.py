@@ -22,7 +22,6 @@ class BenchmarkTests(unittest.TestCase):
         with patch.dict(os.environ, {
             "AUTHORIZE_BENCHMARK_PROVIDER_CALLS": "false",
             "AUTHORIZE_BENCHMARK_TEST_EXECUTION": "true",
-            "OPENROUTER_API_KEY": "dummy",
         }):
             with self.assertRaisesRegex(PermissionError, "No provider call was made"):
                 run_benchmark(["openrouter/free"], validation="unittest")
