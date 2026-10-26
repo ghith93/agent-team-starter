@@ -65,3 +65,21 @@ A free-first Python multi-agent workflow (planner → executor → reviewer) wit
 ## Limits
 - No live model calls, deployment, host provisioning, external alert delivery, independent backup, or GitHub Secret Scanning/Push Protection setting changes were performed. The `main` ruleset was read and verified, but its bypass policy has not been changed.
 - Passing CI verifies the tested commit and checks only; it does not prove production reliability, complete history cleanliness, or 24/7 operation.
+
+
+## Verified follow-up — 2026-10-26 01:32 UTC
+
+- At this checkpoint, `main` was `8581565462c95bc726515bf60da2296c44800858` (commit: `fix: detect restorable queue backups when live database is missing`).
+- The change updates the systemd restore-test path to discover and verify the newest valid backup even when the live queue database has not been created, and adds regression coverage for that condition.
+- CI for this exact main SHA completed successfully: offline regression checks, YAML syntax validation, isolated security audits, and the full tests/security workflow. The eight reported check runs all concluded `success`, including tests, offline regression/evaluator, Gitleaks, Python SAST/secrets/dependency audit, Semgrep, dependency audit, and YAML validation. Evidence: https://github.com/ghith93/agent-team-starter/actions/runs/40254651319 and https://github.com/ghith93/agent-team-starter/actions/runs/40254651292.
+- This verifies repository checks only. It does not close external/runtime acceptance gaps: Hostless aggregate runtime logs still return HTTP 500 (issue #73); ruleset bypass/zero-approval/non-strict freshness remains unresolved (issue #38); Secret Scanning/Push Protection settings remain unverified; and an independent encrypted off-host backup/restore drill plus end-to-end alert delivery remain unverified.
+- No live model calls, paid provider requests, deployment changes, or external notifications were performed as part of this repository review.
+
+
+## Verified follow-up — 2026-10-26 01:43 UTC
+
+- PR #87 merged the HTML text-extraction fix at main commit `4d9ecbe7d2beed917e949cd9ae4780cb62dc54c9`: ignored HTML elements are now tracked by matching tag, preventing a mismatched closing tag from exposing content within an SVG/script/style/noscript region.
+- On the exact PR head `37ad4f68e2b3f12b4298c4232f975727ccd109b7`, the regression suite, deterministic benchmark/promotion gate, YAML validation, Gitleaks, Python SAST, Semgrep, and dependency audit all completed successfully before merge.
+- Post-merge checks on `4d9ecbe7d2beed917e949cd9ae4780cb62dc54c9` were still running at the time of this update. Verify their final conclusions before treating the merged commit as fully green.
+- This code change does not resolve the external Hostless aggregate runtime-logs HTTP 500 in issue #73, and does not prove network-level egress policy, a persistent production host, independent encrypted backup/restore, external alert delivery, or GitHub Secret Scanning/Push Protection settings.
+- The Notion Custom Agent search could not run because the connected workspace requires a Business plan or higher. No metered external research or live model provider calls were launched.
