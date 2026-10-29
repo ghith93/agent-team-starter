@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       authorize_provider_calls:
-        description: "Explicitly authorize up to 9 benchmark task/model requests; free quota may be consumed"
+        description: "Explicitly authorize up to 9 task/model pairs and 18 HTTP requests including one retry per pair; free quota may be consumed"
         required: true
         default: false
         type: boolean

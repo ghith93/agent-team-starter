@@ -30,3 +30,5 @@ The opt-in coding benchmark now pins `cohere/north-mini-code:free`, `qwen/qwen3.
 - A `:free` identifier and the `openrouter/free` alias do not guarantee uptime or unlimited quota. Rate limits can cause the router to move to the next configured free ID.
 - The `openrouter/free` alias can select a free model dynamically. OpenRouter's collection ranking is based on usage, not proof of code quality.
 - Compare role-specific pools against the same offline benchmark and acceptance tests before claiming quality gains. No model call is required to change or validate routing configuration.
+
+The manual benchmark uses at most 3 models × 3 fixed tasks = 9 logical model/task pairs. Each pair can make one transient retry, so the documented upper bound is 18 HTTP requests. Both provider-call and isolated-test authorization inputs must be enabled; paid-model fallback is not allowed.
